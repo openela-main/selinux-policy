@@ -1,6 +1,6 @@
 # github repo with selinux-policy sources
 %global giturl https://github.com/fedora-selinux/selinux-policy
-%global commit 90056bdde4963bc8df7d8a936a22efff139a2367
+%global commit edf0eb42087eadd8c9fb8cb9b67a07023fffd00b
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 
 %define distro redhat
@@ -23,8 +23,8 @@
 %define CHECKPOLICYVER 3.2
 Summary: SELinux policy configuration
 Name: selinux-policy
-Version: 38.1.11
-Release: 2%{?dist}.4
+Version: 38.1.23
+Release: 1%{?dist}
 License: GPLv2+
 Source: %{giturl}/archive/%{commit}/%{name}-%{shortcommit}.tar.gz
 Source1: modules-targeted-base.conf
@@ -505,9 +505,9 @@ echo "
 #     permissive - SELinux prints warnings instead of enforcing.
 #     disabled - No SELinux policy is loaded.
 # See also:
-# https://docs.fedoraproject.org/en-US/quick-docs/getting-started-with-selinux/#getting-started-with-selinux-selinux-states-and-modes
+# https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/9/html/using_selinux/changing-selinux-states-and-modes_using-selinux#changing-selinux-modes-at-boot-time_changing-selinux-states-and-modes
 #
-# NOTE: In earlier Fedora kernel builds, SELINUX=disabled would also
+# NOTE: Up to RHEL 8 release included, SELINUX=disabled would also
 # fully disable SELinux during boot. If you need a system with SELinux
 # fully disabled instead of SELinux running with no policy loaded, you
 # need to pass selinux=0 to the kernel command line. You can use grubby
@@ -809,49 +809,247 @@ exit 0
 %endif
 
 %changelog
-* Wed Aug 23 2023 Nikola Knazekova <nknazeko@redhat.com> - 38.1.11-2.4
-- Allow firewalld rw ica_tmpfs_t files
-Resolves: rhbz#2233535
-- Allow systemd-timedated watch init runtime dir
-Resolves: rhbz#2232637
+* Fri Aug 25 2023 Nikola Knazekova <nknazeko@redhat.com> - 38.1.23-1
+- Allow cups-pdf connect to the system log service
+Resolves: rhbz#2234765
+- Update policy for qatlib
+Resolves: rhbz#2080443
+
+* Thu Aug 24 2023 Nikola Knazekova <nknazeko@redhat.com> - 38.1.22-1
+- Allow qatlib  to modify hardware state information.
+Resolves: rhbz#2080443
+- Update policy for fdo
+Resolves: rhbz#2229722
+- Allow gpsd, oddjob and oddjob_mkhomedir_t write user_tty_device_t chr_file
+Resolves: rhbz#2223305
+- Allow svirt to rw /dev/udmabuf
+Resolves: rhbz#2223727
+- Allow keepalived watch var_run dirs
+Resolves: rhbz#2186759
+
+* Thu Aug 17 2023 Nikola Knazekova <nknazeko@redhat.com> - 38.1.21-1
+- Allow logrotate_t to map generic files in /etc
+Resolves: rhbz#2231257
+- Allow insights-client manage user temporary files
+Resolves: rhbz#2224737
+- Make insights_client_t an unconfined domain
+Resolves: rhbz#2225526
+
+* Fri Aug 11 2023 Nikola Knazekova <nknazeko@redhat.com> - 38.1.20-1
+- Allow user_u and staff_u get attributes of non-security dirs
+Resolves: rhbz#2215507
+- Allow cloud_init create dhclient var files and init_t manage net_conf_t
+Resolves: rhbz#2225418
+- Allow samba-dcerpc service manage samba tmp files
+Resolves: rhbz#2230365
+- Update samba-dcerpc policy for printing
+Resolves: rhbz#2230365
+- Allow sysadm_t run kernel bpf programs
+Resolves: rhbz#2229936
+- allow mon_procd_t self:cap_userns sys_ptrace
+Resolves: rhbz#2221986
+- Remove nsplugin_role from mozilla.if
+Resolves: rhbz#2221251
+- Allow unconfined user filetrans chrome_sandbox_home_t
+Resolves: rhbz#2187893
+- Allow pdns name_bind and name_connect all ports
+Resolves: rhbz#2047945
+- Allow insights-client read and write cluster tmpfs files
+Resolves: rhbz#2221631
+- Allow ipsec read nsfs files
+Resolves: rhbz#2230277
+- Allow upsmon execute upsmon via a helper script
+Resolves: rhbz#2228403
+- Fix labeling for no-stub-resolv.conf
+Resolves: rhbz#2148390
+- Add use_nfs_home_dirs boolean for mozilla_plugin
+Resolves: rhbz#2214298
+- Change wording in /etc/selinux/config
+Resolves: rhbz#2143153
+
+* Thu Aug 03 2023 Nikola Knazekova <nknazeko@redhat.com> - 38.1.19-1
+- Allow qatlib to read sssd public files
+Resolves: rhbz#2080443
+- Fix location for /run/nsd
+Resolves: rhbz#2181600
+- Allow samba-rpcd work with passwords
+Resolves: rhbz#2107092
+- Allow rpcd_lsad setcap and use generic ptys
+Resolves: rhbz#2107092
+- Allow gpsd,oddjob,oddjob_mkhomedir rw user domain pty
+Resolves: rhbz#2223305
+- Allow keepalived to manage its tmp files
+Resolves: rhbz#2179212
+- Allow nscd watch system db dirs
+Resolves: rhbz#2152124
+
+* Fri Jul 21 2023 Nikola Knazekova <nknazeko@redhat.com> - 38.1.18-1
 - Boolean: Allow virt_qemu_ga create ssh directory
-Resolves: rhbz#2226685
+Resolves: rhbz#2181402
 - Allow virt_qemu_ga_t create .ssh dir with correct label
-Resolves: rhbz#2226685
+Resolves: rhbz#2181402
+- Set default ports for keylime policy
+Resolves: RHEL-594
+- Allow unconfined service inherit signal state from init
+Resolves: rhbz#2186233
+- Allow sa-update connect to systemlog services
+Resolves: rhbz#2220643
+- Allow sa-update manage spamc home files
+Resolves: rhbz#2220643
 - Label only /usr/sbin/ripd and ripngd with zebra_exec_t
-Resolves: rhbz#2229992
+Resolves: rhbz#2213605
+- Add the files_getattr_non_auth_dirs() interface
+Resolves: rhbz#2076933
+- Update policy for the sblim-sfcb service
+Resolves: rhbz#2076933
+- Define equivalency for /run/systemd/generator.early
+Resolves: rhbz#2213516
 
-* Mon Jun 05 2023 Nikola Knazekova <nknazeko@redhat.com> - 38.1.11-2.3
-- Allow insights-client get quotas of all filesystems
-Resolves: rhbz#2203797
+* Thu Jun 29 2023 Nikola Knazekova <nknazeko@redhat.com> - 38.1.17-1
+- Add the qatlib  module
+Resolves: rhbz#2080443
+- Add the fdo module
+Resolves: rhbz#2026795
+- Add the booth module to modules.conf
+Resolves: rhbz#2128833
+
+* Thu Jun 29 2023 Nikola Knazekova <nknazeko@redhat.com> - 38.1.16-1
+- Remove permissive from fdo
+Resolves: rhbz#2026795
+- Add the qatlib  module
+Resolves: rhbz#2080443
+- Add the fdo module
+Resolves: rhbz#2026795
+- Add the booth module to modules.conf
+Resolves: rhbz#2128833
+- Add policy for FIDO Device Onboard
+Resolves: rhbz#2026795
+- Create policy for qatlib
+Resolves: rhbz#2080443
+- Add policy for boothd
+Resolves: rhbz#2128833
+- Add list_dir_perms to kerberos_read_keytab
+Resolves: rhbz#2112729
+- Allow nsd_crond_t write nsd_var_run_t & connectto nsd_t
+Resolves: rhbz#2209973
+- Allow collectd_t read network state symlinks
+Resolves: rhbz#2209650
+- Revert "Allow collectd_t read proc_net link files"
+Resolves: rhbz#2209650
+- Allow insights-client execmem
+Resolves: rhbz#2207894
+- Label udf tools with fsadm_exec_t
+Resolves: rhbz#2039774
+
+* Thu Jun 15 2023 Zdenek Pytela <zpytela@redhat.com> - 38.1.15-1
+- Add fs_delete_pstore_files() interface
+Resolves: rhbz#2181565
+- Add fs_read_pstore_files() interface
+Resolves: rhbz#2181565
+- Allow insights-client getsession process permission
+Resolves: rhbz#2214581
+- Allow insights-client work with pipe and socket tmp files
+Resolves: rhbz#2214581
+- Allow insights-client map generic log files
+Resolves: rhbz#2214581
 - Allow insights-client read unconfined service semaphores
-Resolves: rhbz#2203797
-- Allow insights-client work with teamdctl
-Resolves: rhbz#2203797
-- Allow insights-client read all sysctls
-Resolves: rhbz#2203797
-- Allow insights-client manage fsadm pid files
-Resolves: rhbz#2203797
-- Allow insights-client work with su and lpstat
-Resolves: rhbz#2203797
-- Allow insights-client tcp connect to all ports
-Resolves: rhbz#2203797
+Resolves: rhbz#2214581
+- Allow insights-client get quotas of all filesystems
+Resolves: rhbz#2214581
+- Allow haproxy read hardware state information
+Resolves: rhbz#2164691
+- Allow cupsd dbus chat with xdm
+Resolves: rhbz#2143641
+- Allow dovecot_deliver_t create/map dovecot_spool_t dir/file
+Resolves: rhbz#2165863
+- Add none file context for polyinstantiated tmp dirs
+Resolves: rhbz#2099194
+- Add support for the systemd-pstore service
+Resolves: rhbz#2181565
+- Label /dev/userfaultfd with userfaultfd_t
+Resolves: rhbz#2175290
+- Allow collectd_t read proc_net link files
+Resolves: rhbz#2209650
+- Label smtpd with sendmail_exec_t
+Resolves: rhbz#2213573
+- Label msmtp and msmtpd with sendmail_exec_t
+Resolves: rhbz#2213573
+- Allow dovecot-deliver write to the main process runtime fifo files
+Resolves: rhbz#2211787
+- Allow subscription-manager execute ip
+Resolves: rhbz#2211566
+- Allow ftpd read network sysctls
+Resolves: rhbz#2175856
+
+* Fri May 26 2023 Nikola Knazekova <nknazeko@redhat.com> - 38.1.14-1
+- Allow firewalld rw ica_tmpfs_t files
+Resolves: rhbz#2207487
+- Add chromium_sandbox_t setcap capability
+Resolves: rhbz#2187893
+- Allow certmonger manage cluster library files
+Resolves: rhbz#2179022
+- Allow wireguard to rw network sysctls
+Resolves: rhbz#2192154
+- Label /usr/lib/systemd/system/proftpd.* & vsftpd.* with ftpd_unit_file_t
+Resolves: rhbz#2188173
+- Allow plymouthd_t bpf capability to run bpf programs
+Resolves: rhbz#2184803
+- Update pkcsslotd policy for sandboxing
+Resolves: rhbz#2209235
 - Allow unconfined_service_t to create .gnupg labeled as gpg_secret_t
-Resolves: rhbz#2203797
-- Allow cloud-init manage gpg admin home content
-Resolves: rhbz#2203797
+Resolves: rhbz#2203201
 
-* Mon Apr 24 2023 Nikola Knazekova <nknazeko@redhat.com> - 38.1.11-2.2
-- rebuilt
-Resolves: rhbz#2188391
+* Thu May 18 2023 Nikola Knazekova <nknazeko@redhat.com> - 38.1.13-1
+- Allow insights-client work with teamdctl
+Resolves: rhbz#2190178
+- Allow virsh name_connect virt_port_t
+Resolves: rhzb#2187290
+- Allow cupsd to create samba_var_t files
+Resolves: rhbz#2174445
+- Allow dovecot to map files in /var/spool/dovecot
+Resolves: rhbz#2165863
+- Add tunable to allow squid bind snmp port
+Resolves: rhbz#2151378
+- Allow rhsmcert request the kernel to load a module
+Resolves: rhbz#2203359
+- Allow snmpd read raw disk data
+Resolves: rhbz#2196528
 
-* Mon Apr 24 2023 Nikola Knazekova <nknazeko@redhat.com> - 38.1.11-1.1
-- Allow dmidecode write to cloud-init tmp files
-Resolves: rhbz#2188391
-- Allow chronyd send a message to cloud-init over a datagram socket
-Resolves: rhbz#2188391
+* Fri Apr 14 2023 Nikola Knazekova <nknazeko@redhat.com> - 38.1.12-1
 - Allow cloud-init domain transition to insights-client domain
-Resolves: rhbz#2188391
+Resolves: rhbz#2162663
+- Allow chronyd send a message to cloud-init over a datagram socket
+Resolves: rhbz#2162663
+- Allow dmidecode write to cloud-init tmp files
+Resolves: rhbz#2162663
+- Allow login_pgm setcap permission
+Resolves: rhbz#2174331
+- Allow tshark the setsched capability
+Resolves: rhbz#2165634
+- Allow chronyc read network sysctls
+Resolves: rhbz#2173604
+- Allow systemd-timedated watch init runtime dir
+Resolves: rhbz#2175137
+- Add journalctl the sys_resource capability
+Resolves: rhbz#2153782
+- Allow system_cronjob_t transition to rpm_script_t
+Resolves: rhbz#2173685
+- Revert "Allow system_cronjob_t domtrans to rpm_script_t"
+Resolves: rhbz#2173685
+- Allow insights-client tcp connect to all ports
+Resolves: rhbz#2183083
+- Allow insights-client work with su and lpstat
+Resolves: rhbz#2183083
+- Allow insights-client manage fsadm pid files
+Resolves: rhbz#2183083
+- Allow insights-client read all sysctls
+Resolves: rhbz#2183083
+- Allow rabbitmq to read network sysctls
+Resolves: rhbz#2184999
+
+* Tue Mar 28 2023 Nikola Knazekova <nknazeko@redhat.com> - 38.1.11-2
+- rebuilt
+Resolves: rhbz#2172268
 
 * Mon Mar 27 2023 Nikola Knazekova <nknazeko@redhat.com> - 38.1.11-1
 - Allow passt manage qemu pid sock files

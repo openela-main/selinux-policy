@@ -2,6 +2,7 @@
 /run/lock /var/lock
 /run/systemd/system /usr/lib/systemd/system
 /run/systemd/generator /usr/lib/systemd/system
+/run/systemd/generator.early /usr/lib/systemd/system
 /run/systemd/generator.late /usr/lib/systemd/system
 /lib /usr/lib
 /lib64 /usr/lib
