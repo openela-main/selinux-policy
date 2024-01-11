@@ -1,11 +1,11 @@
 # github repo with selinux-policy base sources
 %global git0 https://github.com/fedora-selinux/selinux-policy
-%global commit0 9a47a4acc0a62b081f8681508a87f974de4bfd7f
+%global commit0 b5586baa73b14fb8ca458fa4bbe70522b1ec264b
 %global shortcommit0 %(c=%{commit0}; echo ${c:0:7})
 
 # github repo with selinux-policy contrib sources
 %global git1 https://github.com/fedora-selinux/selinux-policy-contrib
-%global commit1 a8396fef9ea6130a68308bfbd54dfc656fb5037f
+%global commit1 267743aa7d7e85fe2bf3ccd199927d6c00bb4439
 %global shortcommit1 %(c=%{commit1}; echo ${c:0:7})
 
 %define distro redhat
@@ -29,7 +29,7 @@
 Summary: SELinux policy configuration
 Name: selinux-policy
 Version: 3.14.3
-Release: 117%{?dist}.3
+Release: 128%{?dist}
 License: GPLv2+
 Source: %{git0}/archive/%{commit0}/%{name}-%{shortcommit0}.tar.gz
 Source29: %{git1}/archive/%{commit1}/%{name}-contrib-%{shortcommit1}.tar.gz
@@ -165,6 +165,7 @@ SELinux policy documentation package
 %files doc
 %{_mandir}/man*/*
 %{_mandir}/ru/*/*
+%exclude %{_mandir}/man8/container_selinux.8.gz
 %doc %{_usr}/share/doc/%{name}
 
 %define makeCmds() \
@@ -717,43 +718,143 @@ exit 0
 %endif
 
 %changelog
-* Tue Aug 29 2023 Zdenek Pytela <zpytela@redhat.com> - 3.14.3-117.3
-- Add unconfined_server_read_semaphores() interface
-Resolves: rhbz#2233929
+* Fri Aug 25 2023 Zdenek Pytela <zpytela@redhat.com> - 3.14.3-128
+- Allow ssh_agent_type manage generic cache home files
+Resolves: rhbz#2177704
+- Add chromium_sandbox_t setcap capability
+Resolves: rhbz#2221573
+
+* Thu Aug 17 2023 Zdenek Pytela <zpytela@redhat.com> - 3.14.3-127
+- Allow cloud_init create dhclient var files and init_t manage net_conf_t 3
+Resolves: rhbz#2229726
+
+* Fri Aug 11 2023 Zdenek Pytela <zpytela@redhat.com> - 3.14.3-126
+- Allow cloud_init create dhclient var files and init_t manage net_conf_t 1/2
+Resolves: rhbz#2229726
+- Label /usr/libexec/openssh/ssh-pkcs11-helper with ssh_agent_exec_t
+Resolves: rhbz#2177704
+- Allow cloud_init create dhclient var files and init_t manage net_conf_t 2/2
+Resolves: rhbz#2229726
+- Make insights_client_t an unconfined domain
+Resolves: rhbz#2225527
 - Allow insights-client create all rpm logs with a correct label
-Resolves: rhbz#2233929
+Resolves: rhbz#2229559
 - Allow insights-client manage generic logs
-Resolves: rhbz#2233929
+Resolves: rhbz#2229559
+
+* Fri Aug 04 2023 Zdenek Pytela <zpytela@redhat.com> - 3.14.3-125
+- Allow user_u and staff_u get attributes of non-security dirs
+Resolves: rhbz#2216151
+- Allow unconfined user filetrans chrome_sandbox_home_t 1/2
+Resolves: rhbz#2221573
+- Allow unconfined user filetrans chrome_sandbox_home_t 2/2
+Resolves: rhbz#2221573
 - Allow insights-client execmem
-Resolves: rhbz#2233929
+Resolves: rhbz#2225233
+- Allow svnserve execute postdrop with a transition
+Resolves: rhbz#2004843
+- Do not make postfix_postdrop_t type an MTA executable file
+Resolves: rhbz#2004843
+- Allow samba-dcerpc service manage samba tmp files
+Resolves: rhbz#2210771
+- Update samba-dcerpc policy for printing
+Resolves: rhbz#2210771
+
+* Thu Jul 20 2023 Zdenek Pytela <zpytela@redhat.com> - 3.14.3-124
+- Add the files_getattr_non_auth_dirs() interface
+Resolves: rhbz#2076937
+- Update policy for the sblim-sfcb service
+Resolves: rhbz#2076937
+- Dontaudit sfcbd sys_ptrace cap_userns
+Resolves: rhbz#2076937
+- Label /usr/sbin/sos with sosreport_exec_t
+Resolves: rhbz#2167731
+- Allow sa-update manage spamc home files
+Resolves: rhbz#2222200
+- Allow sa-update connect to systemlog services
+Resolves: rhbz#2222200
+- Label /usr/lib/systemd/system/mimedefang.service with antivirus_unit_file_t
+Resolves: rhbz#2222200
+
+* Thu Jun 29 2023 Zdenek Pytela <zpytela@redhat.com> - 3.14.3-123
+- Label only /usr/sbin/ripd and ripngd with zebra_exec_t
+Resolves: rhbz#2213606
+- Allow httpd tcp connect to redis port conditionally
+Resolves: rhbz#2213965
+- Exclude container-selinux manpage from selinux-policy-doc
+Resolves: rhbz#2218362
+
+* Thu Jun 15 2023 Nikola Knazekova <nknazeko@redhat.com> - 3.14.3-122
+- Update cyrus_stream_connect() to use sockets in /run
+Resolves: rhbz#2165752
 - Allow insights-client map generic log files
-Resolves: rhbz#2233929
+Resolves: rhbz#2214572
 - Allow insights-client work with pipe and socket tmp files
-Resolves: rhbz#2233929
+Resolves: rhbz#2207819
 - Allow insights-client getsession process permission
-Resolves: rhbz#2233929
-- Allow insights-client work with teamdctl
-Resolves: rhbz#2233929
-- Allow insights-client read unconfined service semaphores
-Resolves: rhbz#2233929
-- Allow insights-client get quotas of all filesystems
-Resolves: rhbz#2233929
-- Allow insights-client read all sysctls
-Resolves: rhbz#2233931
+Resolves: rhbz#2207819
+- Allow keepalived to manage its tmp files
+Resolves: rhbz#2179335
 
-* Mon Jun 12 2023 Zdenek Pytela <zpytela@redhat.com> - 3.14.3-117.2
-- Label /run/fsck with fsadm_var_run_t
-Resolves: rhbz#2212328
+* Thu May 25 2023 Zdenek Pytela <zpytela@redhat.com> - 3.14.3-121
+- Update pkcsslotd policy for sandboxing 2/2
+Resolves: rhbz#2208162
+- Update pkcsslotd policy for sandboxing 1/2
+Resolves: rhbz#2208162
+- Allow abrt_t read kernel persistent storage files
+Resolves: rhbz#2207914
+- Add allow rules for lttng-sessiond domain
+Resolves: rhbz#2203509
+- Allow rpcd_lsad setcap and use generic ptys
+Resolves: rhbz#2107106
+- Allow samba-dcerpcd connect to systemd_machined over a unix socket
+Resolves: rhbz#2107106
+- Dontaudit targetd search httpd config dirs
+Resolves: rhbz#2203720
 
-* Mon May 15 2023 Zdenek Pytela <zpytela@redhat.com> - 3.14.3-117.1
+* Thu May 11 2023 Zdenek Pytela <zpytela@redhat.com> - 3.14.3-120
+- Allow unconfined service inherit signal state from init
+Resolves: rhbz#2177254
 - Allow systemd-pstore delete kernel persistent storage files
-Resolves: rhbz#2188268
+Resolves: rhbz#2181558
 - Add fs_delete_pstore_files() interface
-Resolves: rhbz#2188268
+Resolves: rhbz#2181558
+- Allow certmonger manage cluster library files
+Resolves: rhbz#2177836
+- Allow samba-rpcd work with passwords
+Resolves: rhbz#2107106
+- Allow snmpd read raw disk data
+Resolves: rhbz#2160000
+- Allow cluster_t dbus chat with various services
+Resolves: rhbz#2196524
+
+* Fri Apr 21 2023 Zdenek Pytela <zpytela@redhat.com> - 3.14.3-119
+- Add unconfined_server_read_semaphores() interface
+Resolves: rhbz#2183351
 - Allow systemd-pstore read kernel persistent storage files
-Resolves: rhbz#2188268
+Resolves: rhbz#2181558
 - Add fs_read_pstore_files() interface
-Resolves: rhbz#2188268
+Resolves: rhbz#2181558
+- Allow insights-client work with teamdctl
+Resolves: rhbz#2185158
+- Allow insights-client read unconfined service semaphores
+Resolves: rhbz#2183351
+- Allow insights-client get quotas of all filesystems
+Resolves: rhbz#2183351
+
+* Thu Apr 13 2023 Zdenek Pytela <zpytela@redhat.com> - 3.14.3-118
+- Allow login_pgm setcap permission
+Resolves: rhbz#2172541
+- Label /run/fsck with fsadm_var_run_t
+Resolves: rhbz#2184348
+- Add boolean qemu-ga to run unconfined script
+Resolves: rhbz#2028762
+- Allow dovecot-deliver write to the main process runtime fifo files
+Resolves: rhbz#2170495
+- Allow certmonger dbus chat with the cron system domain
+Resolves: rhbz#2173289
+- Allow insights-client read all sysctls
+Resolves: rhbz#2177607
 
 * Thu Feb 16 2023 Zdenek Pytela <zpytela@redhat.com> - 3.14.3-117
 - Fix opencryptoki file names in /dev/shm
