@@ -1,11 +1,11 @@
 # github repo with selinux-policy base sources
 %global git0 https://github.com/fedora-selinux/selinux-policy
-%global commit0 b5586baa73b14fb8ca458fa4bbe70522b1ec264b
+%global commit0 6935fe06490bf18240fa126b7bee66bb7d518cb7
 %global shortcommit0 %(c=%{commit0}; echo ${c:0:7})
 
 # github repo with selinux-policy contrib sources
 %global git1 https://github.com/fedora-selinux/selinux-policy-contrib
-%global commit1 267743aa7d7e85fe2bf3ccd199927d6c00bb4439
+%global commit1 d510b4ade98013216c926402420b0a24a502da45
 %global shortcommit1 %(c=%{commit1}; echo ${c:0:7})
 
 %define distro redhat
@@ -29,7 +29,7 @@
 Summary: SELinux policy configuration
 Name: selinux-policy
 Version: 3.14.3
-Release: 128%{?dist}
+Release: 128%{?dist}.1
 License: GPLv2+
 Source: %{git0}/archive/%{commit0}/%{name}-%{shortcommit0}.tar.gz
 Source29: %{git1}/archive/%{commit1}/%{name}-contrib-%{shortcommit1}.tar.gz
@@ -718,6 +718,14 @@ exit 0
 %endif
 
 %changelog
+* Thu Nov 16 2023 Zdenek Pytela <zpytela@redhat.com> - 3.14.3-128.1
+- Additional permissions for ip-vrf
+Resolves: RHEL-15427
+- Allow ip an explicit domain transition to other domains
+Resolves: RHEL-15427
+- Allow  winbind_rpcd_t processes access when samba_export_all_* is on
+Resolves: RHEL-16274
+
 * Fri Aug 25 2023 Zdenek Pytela <zpytela@redhat.com> - 3.14.3-128
 - Allow ssh_agent_type manage generic cache home files
 Resolves: rhbz#2177704
