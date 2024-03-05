@@ -1,6 +1,6 @@
 # github repo with selinux-policy sources
 %global giturl https://github.com/fedora-selinux/selinux-policy
-%global commit edf0eb42087eadd8c9fb8cb9b67a07023fffd00b
+%global commit 1f99cdaa26c4ecbb26362cb21f6cd3eb0ec473a3
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 
 %define distro redhat
@@ -24,7 +24,7 @@
 Summary: SELinux policy configuration
 Name: selinux-policy
 Version: 38.1.23
-Release: 1%{?dist}
+Release: 1%{?dist}.2
 License: GPLv2+
 Source: %{giturl}/archive/%{commit}/%{name}-%{shortcommit}.tar.gz
 Source1: modules-targeted-base.conf
@@ -809,6 +809,22 @@ exit 0
 %endif
 
 %changelog
+* Wed Jan 10 2024 Zdenek Pytela <zpytela@redhat.com> - 38.1.23-1.2
+- Allow qatlib set attributes of vfio device files
+Resolves: RHEL-19052
+- Allow qatlib load kernel modules
+Resolves: RHEL-19052
+- Allow qatlib run lspci
+Resolves: RHEL-19052
+- Allow qatlib manage its private runtime socket files
+Resolves: RHEL-19052
+- Allow qatlib read/write vfio devices
+Resolves: RHEL-19052
+
+* Tue Dec 05 2023 Juraj Marcin <jmarcin@redhat.com> - 38.1.23-1.1
+- Allow ip an explicit domain transition to other domains
+Resolves: RHEL-14248
+
 * Fri Aug 25 2023 Nikola Knazekova <nknazeko@redhat.com> - 38.1.23-1
 - Allow cups-pdf connect to the system log service
 Resolves: rhbz#2234765
