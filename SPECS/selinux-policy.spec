@@ -1,6 +1,6 @@
 # github repo with selinux-policy sources
 %global giturl https://github.com/fedora-selinux/selinux-policy
-%global commit 1f99cdaa26c4ecbb26362cb21f6cd3eb0ec473a3
+%global commit eb644c87c0bb3d4b19be1b28975ce9c6333f0279
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 
 %define distro redhat
@@ -23,8 +23,8 @@
 %define CHECKPOLICYVER 3.2
 Summary: SELinux policy configuration
 Name: selinux-policy
-Version: 38.1.23
-Release: 1%{?dist}.2
+Version: 38.1.35
+Release: 2%{?dist}
 License: GPLv2+
 Source: %{giturl}/archive/%{commit}/%{name}-%{shortcommit}.tar.gz
 Source1: modules-targeted-base.conf
@@ -809,21 +809,193 @@ exit 0
 %endif
 
 %changelog
-* Wed Jan 10 2024 Zdenek Pytela <zpytela@redhat.com> - 38.1.23-1.2
-- Allow qatlib set attributes of vfio device files
-Resolves: RHEL-19052
-- Allow qatlib load kernel modules
-Resolves: RHEL-19052
-- Allow qatlib run lspci
-Resolves: RHEL-19052
-- Allow qatlib manage its private runtime socket files
-Resolves: RHEL-19052
-- Allow qatlib read/write vfio devices
-Resolves: RHEL-19052
+* Thu Mar 14 2024 Zdenek Pytela <zpytela@redhat.com> - 38.1.35-2
+- Rebuild
+Resolves: RHEL-26663
 
-* Tue Dec 05 2023 Juraj Marcin <jmarcin@redhat.com> - 38.1.23-1.1
+* Fri Mar 08 2024 Zdenek Pytela <zpytela@redhat.com> - 38.1.35-1
+- Allow wdmd read hardware state information
+Resolves: RHEL-26663
+
+* Fri Mar 08 2024 Zdenek Pytela <zpytela@redhat.com> - 38.1.34-1
+- Allow wdmd list the contents of the sysfs directories
+Resolves: RHEL-26663
+- Allow linuxptp configure phc2sys and chronyd over a unix domain socket
+Resolves: RHEL-26660
+
+* Thu Feb 22 2024 Juraj Marcin <jmarcin@redhat.com> - 38.1.33-1
+- Allow thumb_t to watch and watch_reads mount_var_run_t
+Resolves: RHEL-26073
+- Allow opafm create NFS files and directories
+Resolves: RHEL-17820
+- Label /tmp/libdnf.* with user_tmp_t
+Resolves: RHEL-11250
+
+* Thu Feb 15 2024 Juraj Marcin <jmarcin@redhat.com> - 38.1.32-1
+- Dontaudit subscription manager setfscreate and read file contexts
+Resolves: RHEL-21635
+- Allow xdm_t to watch and watch_reads mount_var_run_t
+Resolves: RHEL-24841
+- Allow unix dgram sendto between exim processes
+Resolves: RHEL-21902
+- Allow utempter_t use ptmx
+Resolves: RHEL-24946
+- Only allow confined user domains to login locally without unconfined_login
+Resolves: RHEL-1551
+- Add userdom_spec_domtrans_confined_admin_users interface
+Resolves: RHEL-1551
+- Only allow admindomain to execute shell via ssh with ssh_sysadm_login
+Resolves: RHEL-1551
+- Add userdom_spec_domtrans_admin_users interface
+Resolves: RHEL-1551
+- Move ssh dyntrans to unconfined inside unconfined_login tunable policy
+Resolves: RHEL-1551
+
+* Thu Jan 25 2024 Juraj Marcin <jmarcin@redhat.com> - 38.1.31-1
+- Allow chronyd-restricted read chronyd key files
+Resolves: RHEL-18219
+- Allow conntrackd_t to use bpf capability2
+Resolves: RHEL-22277
+- Allow smbd_t to watch user_home_dir_t if samba_enable_home_dirs is on
+Resolves: RHEL-14735
+- Allow hypervkvp_t write access to NetworkManager_etc_rw_t
+Resolves: RHEL-14505
+- Add interface for write-only access to NetworkManager rw conf
+Resolves: RHEL-14505
+- Allow unconfined_domain_type use IORING_OP_URING_CMD on all device nodes
+Resolves: RHEL-11792
+
+* Fri Jan 12 2024 Zdenek Pytela <zpytela@redhat.com> - 38.1.30-1
+- Allow sysadm execute traceroute in sysadm_t domain using sudo
+Resolves: RHEL-14077
+- Allow qatlib set attributes of vfio device files
+Resolves: RHEL-19051
+- Allow qatlib load kernel modules
+Resolves: RHEL-19051
+- Allow qatlib run lspci
+Resolves: RHEL-19051
+- Allow qatlib manage its private runtime socket files
+Resolves: RHEL-19051
+- Allow qatlib read/write vfio devices
+Resolves: RHEL-19051
+- Allow syslog to run unconfined scripts conditionally
+Resolves: RHEL-11174
+- Allow syslogd_t nnp_transition to syslogd_unconfined_script_t
+Resolves: RHEL-11174
+- Allow sendmail MTA connect to sendmail LDA
+Resolves: RHEL-15175
+- Allow sysadm execute tcpdump in sysadm_t domain using sudo
+Resolves: RHEL-15432
+- Allow opafm search nfs directories
+Resolves: RHEL-17820
+- Allow mdadm list stratisd data directories
+Resolves: RHEL-19276
+- Update cyrus_stream_connect() to use sockets in /run
+Resolves: RHEL-19282
+- Allow collectd connect to statsd port
+Resolves: RHEL-21044
+- Allow insights-client transition to sap unconfined domain
+Resolves: RHEL-21452
+- Create the sap module
+Resolves: RHEL-21452
+
+* Thu Dec 14 2023 Juraj Marcin <jmarcin@redhat.com> - 38.1.29-1
+- Add init_explicit_domain() interface
+Resolves: RHEL-18219
+- Allow dovecot_auth_t connect to postgresql using UNIX socket
+Resolves: RHEL-16850
+- Allow keepalived_t to use sys_ptrace of cap_userns
+Resolves: RHEL-17156
+- Make `bootc` be `install_exec_t`
+Resolves: RHEL-19199
+- Add support for chronyd-restricted
+Resolves: RHEL-18219
+- Label /dev/vas with vas_device_t
+Resolves: RHEL-17336
+- Allow gpsd use /dev/gnss devices
+Resolves: RHEL-16676
+- Allow sendmail manage its runtime files
+Resolves: RHEL-15175
+- Add support for syslogd unconfined scripts
+Resolves: RHEL-11174
+
+* Thu Nov 30 2023 Juraj Marcin <jmarcin@redhat.com> - 38.1.28-1
+- Create interface selinux_watch_config and add it to SELinux users
+Resolves: RHEL-1555
+- Allow  winbind_rpcd_t processes access when samba_export_all_* is on
+Resolves: RHEL-16273
+- Allow samba-dcerpcd connect to systemd_machined over a unix socket
+Resolves: RHEL-16273
+- Allow winbind-rpcd make a TCP connection to the ldap port
+Resolves: RHEL-16273
+- Allow sudodomain read var auth files
+Resolves: RHEL-16708
+- Allow auditd read all domains process state
+Resolves: RHEL-14285
+- Allow rsync read network sysctls
+Resolves: RHEL-14638
+- Add dhcpcd bpf capability to run bpf programs
+Resolves: RHEL-15326
+- Allow systemd-localed create Xserver config dirs
+Resolves: RHEL-16716
+- Label /var/run/tmpfiles.d/static-nodes.conf with kmod_var_run_t
+Resolves: RHEL-1553
+- Update sendmail policy module for opensmtpd
+Resolves: RHEL-15175
+
+* Tue Nov 14 2023 Juraj Marcin <jmarcin@redhat.com> - 38.1.27-1
+- Remove glusterd module
+Resolves: RHEL-1548
+- Improve default file context(None) of /var/lib/authselect/backups
+Resolves: RHEL-15220
+- Set default file context of /var/lib/authselect/backups to <<none>>
+Resolves: RHEL-15220
+- Create policy for afterburn
+Resolves: RHEL-12591
+- Allow unconfined_domain_type use io_uring cmd on domain
+Resolves: RHEL-11792
+- Add policy for coreos installer
+Resovles: RHEL-5164
+- Add policy for nvme-stas
+Resolves: RHEL-1557
+- Label /var/run/auditd.state as auditd_var_run_t
+Resolves: RHEL-14374
+- Allow ntp to bind and connect to ntske port.
+Resolves: RHEL-15085
 - Allow ip an explicit domain transition to other domains
-Resolves: RHEL-14248
+Resolves: RHEL-14246
+- Label /usr/libexec/selinux/selinux-autorelabel with semanage_exec_t
+Resolves: RHEL-14289
+- Allow sssd domain transition on passkey_child execution conditionally
+Resolves: RHEL-14014
+- Allow sssd use usb devices conditionally
+Resolves: RHEL-14014
+- Allow kdump create and use its memfd: objects
+Resolves: RHEL-14413
+
+* Tue Oct 31 2023 Zdenek Pytela <zpytela@redhat.com> - 38.1.26-1
+- Allow kdump create and use its memfd: objects
+Resolves: RHEL-14413
+
+* Fri Oct 20 2023 Zdenek Pytela <zpytela@redhat.com> - 38.1.25-1
+- Add map_read map_write to kernel_prog_run_bpf
+Resolves: RHEL-2653
+- Allow sysadm_t read nsfs files
+Resolves: RHEL-5146
+- Dontaudit keepalived setattr on keepalived_unconfined_script_exec_t
+Resolves: RHEL-14029
+- Allow system_mail_t manage exim spool files and dirs
+Resolves: RHEL-14110
+- Label /run/pcsd.socket with cluster_var_run_t
+Resolves: RHEL-1664
+
+* Fri Sep 29 2023 Juraj Marcin <jmarcin@redhat.com> - 38.1.24-1
+- Allow cupsd_t to use bpf capability
+Resolves: RHEL-3633
+- Label /dev/gnss[0-9] with gnss_device_t
+Resolves: RHEL-9936
+- Dontaudit rhsmcertd write memory device
+Resolves: RHEL-1547
 
 * Fri Aug 25 2023 Nikola Knazekova <nknazeko@redhat.com> - 38.1.23-1
 - Allow cups-pdf connect to the system log service
