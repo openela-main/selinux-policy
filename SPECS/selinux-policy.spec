@@ -1,11 +1,11 @@
 # github repo with selinux-policy base sources
 %global git0 https://github.com/fedora-selinux/selinux-policy
-%global commit0 6935fe06490bf18240fa126b7bee66bb7d518cb7
+%global commit0 552905cb94a7790fb51586b7778d303be21692a4
 %global shortcommit0 %(c=%{commit0}; echo ${c:0:7})
 
 # github repo with selinux-policy contrib sources
 %global git1 https://github.com/fedora-selinux/selinux-policy-contrib
-%global commit1 d510b4ade98013216c926402420b0a24a502da45
+%global commit1 635888d8ead909d158ac612b59e518534c9104f4
 %global shortcommit1 %(c=%{commit1}; echo ${c:0:7})
 
 %define distro redhat
@@ -29,7 +29,7 @@
 Summary: SELinux policy configuration
 Name: selinux-policy
 Version: 3.14.3
-Release: 128%{?dist}.1
+Release: 139%{?dist}
 License: GPLv2+
 Source: %{git0}/archive/%{commit0}/%{name}-%{shortcommit0}.tar.gz
 Source29: %{git1}/archive/%{commit1}/%{name}-contrib-%{shortcommit1}.tar.gz
@@ -443,7 +443,7 @@ mv %{buildroot}%{_usr}/share/man/man8/style.css %{buildroot}%{_usr}/share/selinu
 
 mkdir -p %{buildroot}%{_rpmconfigdir}/macros.d
 install -m 644 %{SOURCE102} %{buildroot}%{_rpmconfigdir}/macros.d/macros.selinux-policy
-sed -i 's/SELINUXPOLICYVERSION/%{version}-%{release}/' %{buildroot}%{_rpmconfigdir}/macros.d/macros.selinux-policy
+sed -i 's/SELINUXPOLICYVERSION/%{version}/' %{buildroot}%{_rpmconfigdir}/macros.d/macros.selinux-policy
 sed -i 's@SELINUXSTOREPATH@%{_sharedstatedir}/selinux@' %{buildroot}%{_rpmconfigdir}/macros.d/macros.selinux-policy
 
 
@@ -718,13 +718,153 @@ exit 0
 %endif
 
 %changelog
-* Thu Nov 16 2023 Zdenek Pytela <zpytela@redhat.com> - 3.14.3-128.1
+* Fri Mar 08 2024 Zdenek Pytela <zpytela@redhat.com> - 3.14.3-139
+- Allow wdmd read hardware state information
+Resolves: RHEL-27507
+
+* Fri Mar 08 2024 Zdenek Pytela <zpytela@redhat.com> - 3.14.3-138
+- Allow wdmd list the contents of the sysfs directories
+Resolves: RHEL-27507
+- Allow linuxptp configure phc2sys and chronyd over a unix domain socket
+Resolves: RHEL-27394
+
+* Thu Feb 22 2024 Zdenek Pytela <zpytela@redhat.com> - 3.14.3-137
+- Differentiate between staff and sysadm when executing crontab with sudo
+Resolves: RHEL-1388
+- Allow su domains write login records
+Resolves: RHEL-2606
+- Revert "Allow su domains write login records"
+Resolves: RHEL-2606
+- Add crontab_admin_domtrans interface
+Resolves: RHEL-1388
+- Allow gpg manage rpm cache
+Resolves: RHEL-11249
+
+* Thu Feb 15 2024 Zdenek Pytela <zpytela@redhat.com> - 3.14.3-136
+- Transition from sudodomains to crontab_t when executing crontab_exec_t
+Resolves: RHEL-1388
+- Fix label of pseudoterminals created from sudodomain
+Resolves: RHEL-1388
+- Allow login_userdomain to manage session_dbusd_tmp_t dirs/files
+Resolves: RHEL-22500
+- Label /dev/ngXnY and /dev/nvme-subsysX with nvme_device_t
+Resolves: RHEL-23442
+- Allow admin user read/write on fixed_disk_device_t
+Resolves: RHEL-23434
+- Only allow confined user domains to login locally without unconfined_login
+Resolves: RHEL-1628
+- Add userdom_spec_domtrans_confined_admin_users interface
+Resolves: RHEL-1628
+- Only allow admindomain to execute shell via ssh with ssh_sysadm_login
+Resolves: RHEL-1628
+- Add userdom_spec_domtrans_admin_users interface
+Resolves: RHEL-1628
+- Move ssh dyntrans to unconfined inside unconfined_login tunable policy
+Resolves: RHEL-1628
+- Allow utempter_t use ptmx
+Resolves: RHEL-25002
+- Dontaudit subscription manager setfscreate and read file contexts
+Resolves: RHEL-21639
+- Don't audit crontab_domain write attempts to user home
+Resolves: RHEL-1388
+- Add crontab_domtrans interface
+Resolves: RHEL-1388
+- Add dbus_manage_session_tmp_files interface
+Resolves: RHEL-22500
+- Allow httpd read network sysctls
+Resolves: RHEL-22748
+- Allow keepalived_unconfined_script_t dbus chat with init
+Resolves: RHEL-22843
+
+* Fri Jan 26 2024 Zdenek Pytela <zpytela@redhat.com> - 3.14.3-135
+- Label /tmp/libdnf.* with user_tmp_t
+Resolves: RHEL-11249
+- Allow su domains write login records
+Resolves: RHEL-2606
+- Allow gpg read rpm cache
+Resolves: RHEL-11249
+- Allow unix dgram sendto between exim processes
+Resolves: RHEL-21903
+- Allow hypervkvp_t write access to NetworkManager_etc_rw_t
+Resolves: RHEL-17687
+- Add interface for write-only access to NetworkManager rw conf
+Resolves: RHEL-17687
+- Allow conntrackd_t to use sys_admin capability
+Resolves: RHEL-22276
+
+* Fri Jan 12 2024 Zdenek Pytela <zpytela@redhat.com> - 3.14.3-134
+- Allow syslog to run unconfined scripts conditionally
+Resolves: RHEL-10087
+- Allow syslogd_t nnp_transition to syslogd_unconfined_script_t
+Resolves: RHEL-10087
+- Allow collectd connect to statsd port
+Resolves: RHEL-19482
+- Allow collectd_t read network state symlinks
+Resolves: RHEL-19482
+- Allow collectd_t domain to create netlink_generic_socket sockets
+Resolves: RHEL-19482
+- Allow opafm search nfs directories
+Resolves: RHEL-19426
+- Allow mdadm list stratisd data directories
+Resolves: RHEL-21374
+
+* Wed Dec 13 2023 Zdenek Pytela <zpytela@redhat.com> - 3.14.3-133
+- Label /dev/acpi_thermal_rel char device with acpi_device_t
+Resolves: RHEL-18027
+- Allow sysadm execute traceroute in sysadm_t domain using sudo
+Resolves: RHEL-9947
+- Allow sysadm execute tcpdump in sysadm_t domain using sudo
+Resolves: RHEL-15398
+- Add support for syslogd unconfined scripts
+Resolves: RHEL-10087
+- Label /dev/wmi/dell-smbios as acpi_device_t
+Resolves: RHEL-18027
+- Make named_zone_t and named_var_run_t a part of the mountpoint attribute
+Resolves: RHEL-1954
+- Dontaudit rhsmcertd write memory device
+Resolves: RHEL-17721
+
+* Tue Nov 28 2023 Zdenek Pytela <zpytela@redhat.com> - 3.14.3-132
+- Allow sudodomain read var auth files
+Resolves: RHEL-16567
+- Update cifs interfaces to include fs_search_auto_mountpoints()
+Resolves: RHEL-14072
+- Allow systemd-localed create Xserver config dirs
+Resolves: RHEL-16715
+- Label /var/run/auditd.state as auditd_var_run_t
+Resolves: RHEL-14376
+- Allow auditd read all domains process state
+Resolves: RHEL-14471
+- Allow sudo userdomain to run rpm related commands
+Resolves: RHEL-1679
+- Remove insights_client_watch_lib_dirs() interface
+Resolves: RHEL-16185
+
+* Wed Nov 08 2023 Zdenek Pytela <zpytela@redhat.com> - 3.14.3-131
 - Additional permissions for ip-vrf
-Resolves: RHEL-15427
+Resolves: RHEL-9981
 - Allow ip an explicit domain transition to other domains
-Resolves: RHEL-15427
+Resolves: RHEL-9981
 - Allow  winbind_rpcd_t processes access when samba_export_all_* is on
-Resolves: RHEL-16274
+Resolves: RHEL-5845
+- Allow system_mail_t manage exim spool files and dirs
+Resolves: RHEL-14186
+
+* Wed Oct 04 2023 Lukas Vrabec <lvrabec@redhat.com> - 3.14.3-130
+- Label msmtp and msmtpd with sendmail_exec_t
+Resolves: RHEL-1678
+- Set default file context of HOME_DIR/tmp/.* to <<none>>
+Resolves: RHEL-1099
+- Improve default file context(None) of /var/lib/authselect/backups
+Resolves: RHEL-3539
+
+* Fri Sep 29 2023 Lukas Vrabec <lvrabec@redhat.com> - 3.14.3-129
+- Set default file context of /var/lib/authselect/backups to <<none>>
+Resolves: RHEL-3539
+- Add file context specification for /usr/libexec/realmd
+Resolves: RHEL-2147
+- Add numad the ipc_owner capability
+Resolves: RHEL-2415
 
 * Fri Aug 25 2023 Zdenek Pytela <zpytela@redhat.com> - 3.14.3-128
 - Allow ssh_agent_type manage generic cache home files
