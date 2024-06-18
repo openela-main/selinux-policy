@@ -1,6 +1,6 @@
 # github repo with selinux-policy sources
 %global giturl https://github.com/fedora-selinux/selinux-policy
-%global commit eb644c87c0bb3d4b19be1b28975ce9c6333f0279
+%global commit 44021f8904c8bcbcecd978a69a23027c72b0b92d
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 
 %define distro redhat
@@ -24,7 +24,7 @@
 Summary: SELinux policy configuration
 Name: selinux-policy
 Version: 38.1.35
-Release: 2%{?dist}
+Release: 2%{?dist}.2
 License: GPLv2+
 Source: %{giturl}/archive/%{commit}/%{name}-%{shortcommit}.tar.gz
 Source1: modules-targeted-base.conf
@@ -809,6 +809,16 @@ exit 0
 %endif
 
 %changelog
+* Mon Jun 03 2024 Zdenek Pytela <zpytela@redhat.com> - 38.1.35-2.2
+- Rebuild
+Resolves: RHEL-36154
+
+* Fri May 31 2024 Zdenek Pytela <zpytela@redhat.com> - 38.1.35-2.1
+- Allow svirt_t read vm sysctls
+Resolves: RHEL-36154
+- Allow qemu-ga read vm sysctls
+Resolves: RHEL-36291
+
 * Thu Mar 14 2024 Zdenek Pytela <zpytela@redhat.com> - 38.1.35-2
 - Rebuild
 Resolves: RHEL-26663
