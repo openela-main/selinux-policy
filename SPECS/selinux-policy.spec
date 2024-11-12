@@ -1,6 +1,6 @@
 # github repo with selinux-policy sources
 %global giturl https://github.com/fedora-selinux/selinux-policy
-%global commit 44021f8904c8bcbcecd978a69a23027c72b0b92d
+%global commit 0113b35519369e628e7fcd87af000cfcd4b1fa6c
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 
 %define distro redhat
@@ -23,8 +23,8 @@
 %define CHECKPOLICYVER 3.2
 Summary: SELinux policy configuration
 Name: selinux-policy
-Version: 38.1.35
-Release: 2%{?dist}.2
+Version: 38.1.45
+Release: 3%{?dist}
 License: GPLv2+
 Source: %{giturl}/archive/%{commit}/%{name}-%{shortcommit}.tar.gz
 Source1: modules-targeted-base.conf
@@ -809,15 +809,189 @@ exit 0
 %endif
 
 %changelog
-* Mon Jun 03 2024 Zdenek Pytela <zpytela@redhat.com> - 38.1.35-2.2
+* Mon Sep 16 2024 Zdenek Pytela <zpytela@redhat.com> - 38.1.45-3
 - Rebuild
-Resolves: RHEL-36154
+Resolves: RHEL-55414
 
-* Fri May 31 2024 Zdenek Pytela <zpytela@redhat.com> - 38.1.35-2.1
+* Wed Sep 04 2024 Zdenek Pytela <zpytela@redhat.com> - 38.1.45-2
+- Rebuild
+Resolves: RHEL-55414
+
+* Thu Aug 29 2024 Zdenek Pytela <zpytela@redhat.com> - 38.1.45-1
+- Allow setsebool_t relabel selinux data files
+Resolves: RHEL-55414
+
+* Mon Aug 12 2024 Zdenek Pytela <zpytela@redhat.com> - 38.1.44-1
+- Allow coreos-installer-generator work with partitions
+Resolves: RHEL-38614
+- Label /etc/mdadm.conf.d with mdadm_conf_t
+Resolves: RHEL-38614
+- Change file context specification to /var/run/metadata
+Resolves: RHEL-49735
+- Allow initrc_t transition to passwd_t
+Resolves: RHEL-17404
+- systemd: allow systemd_notify_t to send data to kernel_t datagram sockets
+Resolves: RHEL-25514
+- systemd: allow sys_admin capability for systemd_notify_t
+Resolves: RHEL-25514
+- Change systemd-network-generator transition to include class file
+Resolves: RHEL-47033
+- Allow sshd_keygen_t connect to userdbd over a unix stream socket
+Resolves: RHEL-47033
+
+* Wed Jul 31 2024 Zdenek Pytela <zpytela@redhat.com> - 38.1.43-1
+- Allow rhsmcertd read/write access to /dev/papr-sysparm
+Resolves: RHEL-49599
+- Label /dev/papr-sysparm and /dev/papr-vpd
+Resolves: RHEL-49599
+- Allow rhsmcertd read, write, and map ica tmpfs files
+Resolves: RHEL-50926
+- Update afterburn file transition policy
+Resolves: RHEL-49735
+- Label /run/metadata with afterburn_runtime_t
+Resolves: RHEL-49735
+- Allow afterburn list ssh home directory
+Resolves: RHEL-49735
+- Support SGX devices
+Resolves: RHEL-50922
+- Allow systemd-pstore send a message to syslogd over a unix domain
+Resolves: RHEL-45528
+- Allow postfix_domain map postfix_etc_t files
+Resolves: RHEL-46332
+- Allow microcode create /sys/devices/system/cpu/microcode/reload
+Resolves: RHEL-26821
+- Allow svirt_tcg_t map svirt_image_t files
+Resolves: RHEL-27141
+- Allow systemd-hostnamed shut down nscd
+Resolves: RHEL-45033
+- Allow postfix_domain connect to postgresql over a unix socket
+Resolves: RHEL-6776
+
+* Thu Jul 18 2024 Zdenek Pytela <zpytela@redhat.com> - 38.1.42-1
+- Label samba certificates with samba_cert_t
+Resolves: RHEL-25724
+- Allow systemd-coredumpd the sys_chroot capability
+Resolves: RHEL-45245
+- Allow svirt_tcg_t read vm sysctls
+Resolves: RHEL-27141
+- Label /usr/sbin/samba-gpupdate with samba_gpupdate_exec_t
+Resolves: RHEL-25724
+- Label /var/run/coreos-installer-reboot with coreos_installer_var_run_t
+Resolves: RHEL-38614
+- Allow coreos-installer add systemd unit file links
+Resolves: RHEL-38614
+
+* Sun Jul 07 2024 Zdenek Pytela <zpytela@redhat.com> - 38.1.41-1
+- Differentiate between staff and sysadm when executing crontab with sudo
+Resolves: RHEL-31888
+- Label /usr/bin/samba-gpupdate with samba_gpupdate_exec_t
+Resolves: RHEL-25724
+- Allow unconfined_service_t transition to passwd_t
+Resolves: RHEL-17404
+- Allow sbd to trace processes in user namespace
+Resolves: RHEL-44680
+- Allow systemd-coredumpd sys_admin and sys_resource capabilities
+Resolves: RHEL-45245
+- Label /usr/lib/node_modules/npm/bin with bin_t
+Resolves: RHEL-36587
+- Support /var is empty
+Resolves: RHEL-29331
+- Allow timemaster write to sysfs files
+Resolves: RHEL-28777
+- Don't audit crontab_domain write attempts to user home
+Resolves: RHEL-31888
+- Transition from sudodomains to crontab_t when executing crontab_exec_t
+Resolves: RHEL-31888
+- Fix label of pseudoterminals created from sudodomain
+Resolves: RHEL-31888
+
+* Tue Jun 18 2024 Zdenek Pytela <zpytela@redhat.com> - 38.1.40-1
+- Allow systemd-coredump read nsfs files
+Resolves: RHEL-39937
+- Allow login_userdomain execute systemd-tmpfiles in the caller domain
+Resolves: RHEL-40374
+- Allow ptp4l_t request that the kernel load a kernel module
+Resolves: RHEL-38905
+- Allow collectd to trace processes in user namespace
+Resolves: RHEL-36293
+
+* Thu Jun 06 2024 Zdenek Pytela <zpytela@redhat.com> - 38.1.39-1
+- Add interfaces for watching and reading ifconfig_var_run_t
+Resolves: RHEL-39408
+- Allow dhcpcd use unix_stream_socket
+Resolves: RHEL-39408
+- Allow dhcpc read /run/netns files
+Resolves: RHEL-39408
+- Allow all domains read and write z90crypt device
+Resolves: RHEL-38833
+- Allow bootupd search efivarfs dirs
+Resolves: RHEL-36289
+- Move unconfined_domain(sap_unconfined_t) to an optional block
+Resolves: RHEL-37663
+
+* Thu May 16 2024 Zdenek Pytela <zpytela@redhat.com> - 38.1.38-1
+- Add boolean qemu-ga to run unconfined script
+Resolves: RHEL-31211
+- Ensure dbus communication is allowed bidirectionally
+Resolves: RHEL-35782
+- Allow logwatch_mail_t read network sysctls
+Resolves: RHEL-34135
+- Allow sysadm execute dmidecode using sudo
+Resolves: RHEL-16104
+- Allow sudodomain list files in /var
+Resolves: RHEL-16104
+- Allow various services read and write z90crypt device
+Resolves: RHEL-33361
+- Allow system_cronjob_t dbus chat with avahi_t
+Resolves: RHEL-32290
+- Allow setroubleshootd get attributes of all sysctls
+Resolves: RHEL-34078
+- Remove permissive domain for bootupd_t
+Resolves: RHEL-22173
+
+* Tue May 07 2024 Zdenek Pytela <zpytela@redhat.com> - 38.1.37-1
+- Allow numad to trace processes in user namespace
+Resolves: RHEL-33994
+- Remove permissive domain for rshim_t
+Resolves: RHEL-22173
+- Remove permissive domain for mptcpd_t
+Resolves: RHEL-22173
+- Remove permissive domain for coreos_installer_t
+Resolves: RHEL-22173
+- Remove permissive domain for afterburn_t
+Resolves: RHEL-22173
+- Update afterburn policy
+Resolves: RHEL-22173
+- Allow bootupd search EFI directory
+Resolves: RHEL-22172
+- Add the bootupd module
+Resolves: RHEL-22172
+- Add policy for bootupd
+Resolves: RHEL-22172
+- Label /dev/mmcblk0rpmb character device with removable_device_t
+Resolves: RHEL-28080
+- Differentiate between staff and sysadm when executing crontab with sudo
+Resolves: RHEL-31888
+- Add crontab_admin_domtrans interface
+Resolves: RHEL-31888
+- Add crontab_domtrans interface
+Resolves: RHEL-31888
 - Allow svirt_t read vm sysctls
-Resolves: RHEL-36154
+Resolves: RHEL-32296
+
+* Mon Apr 15 2024 Zdenek Pytela <zpytela@redhat.com> - 38.1.36-1
+- Allow systemd-timedated get the timemaster service status
+Resolves: RHEL-25978
+- postfix: allow qmgr to delete mails in bounce/ directory
+Resolves: RHEL-30271
+- Allow NetworkManager the sys_ptrace capability in user namespace
+Resolves: RHEL-24346
+- Label /dev/iommu with iommu_device_t
+Resolves: RHEL-22063
 - Allow qemu-ga read vm sysctls
-Resolves: RHEL-36291
+Resolves: RHEL-31892
+- Update repository link and branches names for c9s
+Related: RHEL-22960
 
 * Thu Mar 14 2024 Zdenek Pytela <zpytela@redhat.com> - 38.1.35-2
 - Rebuild
