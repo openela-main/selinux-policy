@@ -1,11 +1,11 @@
 # github repo with selinux-policy base sources
 %global git0 https://github.com/fedora-selinux/selinux-policy
-%global commit0 552905cb94a7790fb51586b7778d303be21692a4
+%global commit0 fa87f8551f38f3977209b9c633766f28c8fda086
 %global shortcommit0 %(c=%{commit0}; echo ${c:0:7})
 
 # github repo with selinux-policy contrib sources
 %global git1 https://github.com/fedora-selinux/selinux-policy-contrib
-%global commit1 635888d8ead909d158ac612b59e518534c9104f4
+%global commit1 aadacd8e54ad79d73aca5b869cbd0c135d3a6f4d
 %global shortcommit1 %(c=%{commit1}; echo ${c:0:7})
 
 %define distro redhat
@@ -29,7 +29,7 @@
 Summary: SELinux policy configuration
 Name: selinux-policy
 Version: 3.14.3
-Release: 139%{?dist}
+Release: 139%{?dist}.1
 License: GPLv2+
 Source: %{git0}/archive/%{commit0}/%{name}-%{shortcommit0}.tar.gz
 Source29: %{git1}/archive/%{commit1}/%{name}-contrib-%{shortcommit1}.tar.gz
@@ -718,6 +718,14 @@ exit 0
 %endif
 
 %changelog
+* Fri Oct 25 2024 Zdenek Pytela <zpytela@redhat.com> - 3.14.3-139.1
+- Allow setsebool_t relabel selinux data files
+Resolves: RHEL-55432
+- Allow dirsrv-snmp map dirsv_tmpfs_t files
+Resolves: RHEL-32441
+- Allow dirsrv_snmp_t to manage dirsrv_config_t & dirsrv_var_run_t files
+Resolves: RHEL-32441
+
 * Fri Mar 08 2024 Zdenek Pytela <zpytela@redhat.com> - 3.14.3-139
 - Allow wdmd read hardware state information
 Resolves: RHEL-27507
