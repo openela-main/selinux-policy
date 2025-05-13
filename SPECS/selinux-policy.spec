@@ -1,6 +1,6 @@
 # github repo with selinux-policy sources
 %global giturl https://github.com/fedora-selinux/selinux-policy
-%global commit 0113b35519369e628e7fcd87af000cfcd4b1fa6c
+%global commit cc594909ed91e01158de01b5d43673ba2e5c8967
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 
 %define distro redhat
@@ -18,13 +18,16 @@
 %if %{?BUILD_MLS:0}%{!?BUILD_MLS:1}
 %define BUILD_MLS 1
 %endif
+%if %{?BUILD_AUTOMOTIVE:0}%{!?BUILD_AUTOMOTIVE:1}
+%define BUILD_AUTOMOTIVE 1
+%endif
 %define POLICYVER 33
 %define POLICYCOREUTILSVER 3.4-1
 %define CHECKPOLICYVER 3.2
 Summary: SELinux policy configuration
 Name: selinux-policy
-Version: 38.1.45
-Release: 3%{?dist}
+Version: 38.1.53
+Release: 2%{?dist}
 License: GPLv2+
 Source: %{giturl}/archive/%{commit}/%{name}-%{shortcommit}.tar.gz
 Source1: modules-targeted-base.conf
@@ -60,6 +63,13 @@ Source33: macro-expander
 Source35: container-selinux.tgz
 
 Source36: selinux-check-proper-disable.service
+
+Source37: modules-automotive-base.conf
+Source38: modules-automotive-contrib.conf
+Source39: booleans-automotive.conf
+Source40: users-automotive
+Source41: setrans-automotive.conf
+Source42: securetty_types-automotive
 
 # Provide rpm macros for packages installing SELinux modules
 Source102: rpm.macros
@@ -169,6 +179,7 @@ This package contains manual pages and documentation of the policy modules.
 %files doc
 %{_mandir}/man*/*
 %{_mandir}/ru/*/*
+%exclude %{_mandir}/man8/container_selinux.8.gz
 %doc %{_datadir}/doc/%{name}
 
 %define common_params DISTRO=%{distro} UBAC=n DIRECT_INITRC=n MONOLITHIC=%{monolithic} MLS_CATS=1024 MCS_CATS=1024
@@ -407,7 +418,7 @@ end
 tar -C policy/modules/contrib -xf %{SOURCE35}
 
 mkdir selinux_config
-for i in %{SOURCE1} %{SOURCE2} %{SOURCE3} %{SOURCE4} %{SOURCE5} %{SOURCE6} %{SOURCE8} %{SOURCE14} %{SOURCE15} %{SOURCE17} %{SOURCE18} %{SOURCE19} %{SOURCE20} %{SOURCE22} %{SOURCE23} %{SOURCE25} %{SOURCE26} %{SOURCE31} %{SOURCE32};do
+for i in %{SOURCE1} %{SOURCE2} %{SOURCE3} %{SOURCE4} %{SOURCE5} %{SOURCE6} %{SOURCE8} %{SOURCE14} %{SOURCE15} %{SOURCE17} %{SOURCE18} %{SOURCE19} %{SOURCE20} %{SOURCE22} %{SOURCE23} %{SOURCE25} %{SOURCE26} %{SOURCE31} %{SOURCE32} %{SOURCE37} %{SOURCE38} %{SOURCE39} %{SOURCE40} %{SOURCE41} %{SOURCE42};do
  cp $i selinux_config
 done
 
@@ -424,8 +435,8 @@ mkdir -p %{buildroot}%{_bindir}
 install -m 755  %{SOURCE33} %{buildroot}%{_bindir}/
 
 # Always create policy module package directories
-mkdir -p %{buildroot}%{_datadir}/selinux/{targeted,mls,minimum,modules}/
-mkdir -p %{buildroot}%{_sharedstatedir}/selinux/{targeted,mls,minimum,modules}/
+mkdir -p %{buildroot}%{_datadir}/selinux/{targeted,mls,minimum,automotive,modules}/
+mkdir -p %{buildroot}%{_sharedstatedir}/selinux/{targeted,mls,minimum,automotive,modules}/
 
 mkdir -p %{buildroot}%{_datadir}/selinux/packages
 
@@ -465,8 +476,17 @@ rm -rf %{buildroot}%{_sharedstatedir}/selinux/minimum/active/modules/100/sandbox
 %nonBaseModulesList mls
 %endif
 
+%if %{BUILD_AUTOMOTIVE}
+# Build automotive policy
+%makeCmds automotive mcs allow
+%makeModulesConf automotive base contrib
+%installCmds automotive mcs allow
+%modulesList automotive
+%nonBaseModulesList automotive
+%endif
+
 # remove leftovers when save-previous=true (semanage.conf) is used
-rm -rf %{buildroot}%{_sharedstatedir}/selinux/{minimum,targeted,mls}/previous
+rm -rf %{buildroot}%{_sharedstatedir}/selinux/{minimum,targeted,mls,automotive}/previous
 
 mkdir -p %{buildroot}%{_mandir}
 cp -R  man/* %{buildroot}%{_mandir}
@@ -738,6 +758,83 @@ exit 0
 %fileList minimum
 %endif
 
+%if %{BUILD_AUTOMOTIVE}
+%package automotive
+Summary: SELinux automotive policy
+Provides: selinux-policy-any = %{version}-%{release}
+Requires(post): policycoreutils-python-utils >= %{POLICYCOREUTILSVER}
+Requires(pre): coreutils
+Requires(pre): selinux-policy = %{version}-%{release}
+Requires: selinux-policy = %{version}-%{release}
+Conflicts:  seedit
+Conflicts: container-selinux <= 1.9.0-9
+
+%description automotive
+SELinux automotive policy package.
+
+%pretrans automotive -p <lua>
+%backupConfigLua
+
+%pre automotive
+%preInstall automotive
+if [ $1 -ne 1 ]; then
+    %{_sbindir}/semodule -s automotive --list-modules=full | awk '{ if ($4 != "disabled") print $2; }' > %{_datadir}/selinux/automotive/instmodules.lst
+fi
+
+%post automotive
+%checkConfigConsistency automotive
+contribpackages=`cat %{_datadir}/selinux/automotive/modules-contrib.lst`
+basepackages=`cat %{_datadir}/selinux/automotive/modules-base.lst`
+if [ ! -d %{_sharedstatedir}/selinux/automotive/active/modules/disabled ]; then
+    mkdir %{_sharedstatedir}/selinux/automotive/active/modules/disabled
+fi
+if [ $1 -eq 1 ]; then
+for p in $contribpackages; do
+    touch %{_sharedstatedir}/selinux/automotive/active/modules/disabled/$p
+done
+for p in $basepackages apache dbus inetd kerberos mta nis; do
+    rm -f %{_sharedstatedir}/selinux/automotive/active/modules/disabled/$p
+done
+%{_sbindir}/restorecon -R /root /var/log /var/run 2> /dev/null
+%{_sbindir}/semodule -B -s automotive
+else
+instpackages=`cat %{_datadir}/selinux/automotive/instmodules.lst`
+for p in $contribpackages; do
+    touch %{_sharedstatedir}/selinux/automotive/active/modules/disabled/$p
+done
+for p in $instpackages apache dbus inetd kerberos mta nis; do
+    rm -f %{_sharedstatedir}/selinux/automotive/active/modules/disabled/$p
+done
+%{_sbindir}/semodule -B -s automotive
+%relabel automotive
+fi
+exit 0
+
+%posttrans automotive
+%checkConfigConsistency automotive
+
+%postun automotive
+if [ $1 = 0 ]; then
+    if [ -s %{_sysconfdir}/selinux/config ]; then
+        source %{_sysconfdir}/selinux/config &> /dev/null || true
+    fi
+    if [ "$SELINUXTYPE" = "automotive" ]; then
+        %{_sbindir}/setenforce 0 2> /dev/null
+        if [ ! -s %{_sysconfdir}/selinux/config ]; then
+            echo "SELINUX=disabled" > %{_sysconfdir}/selinux/config
+        else
+            sed -i 's/^SELINUX=.*/SELINUX=disabled/g' %{_sysconfdir}/selinux/config
+        fi
+    fi
+fi
+exit 0
+
+%files automotive -f %{buildroot}%{_datadir}/selinux/automotive/nonbasemodules.lst
+%config(noreplace) %{_sysconfdir}/selinux/automotive/contexts/users/unconfined_u
+%config(noreplace) %{_sysconfdir}/selinux/automotive/contexts/users/sysadm_u
+%fileList automotive
+%endif
+
 %if %{BUILD_MLS}
 %package mls
 Summary: SELinux MLS policy
@@ -809,6 +906,153 @@ exit 0
 %endif
 
 %changelog
+* Fri Feb 07 2025 Zdenek Pytela <zpytela@redhat.com> - 38.1.53-1
+- Allow svirt_t to connect to nbdkit over a unix stream socket
+Resolves: RHEL-56029
+- Allow power-profiles-daemon the bpf capability
+Resolves: RHEL-61117
+- Allow systemd-machined the kill user-namespace capability
+Resolves: RHEL-76352
+
+* Fri Jan 31 2025 Zdenek Pytela <zpytela@redhat.com> - 38.1.52-1
+- Add the files_read_root_files() interface
+Resolves: RHEL-70849
+- Dontaudit systemd-logind remove all files
+Resolves: RHEL-59145
+- Add the files_dontaudit_read_all_dirs() interface
+Resolves: RHEL-59145
+- Add the files_dontaudit_delete_all_files() interface
+Resolves: RHEL-59145
+- Allow rhsmcertd notify virt-who
+Resolves: RHEL-77152
+- Allow irqbalance to run unconfined scripts conditionally
+Resolves: RHEL-1556
+- Backport bootupd policy from current Fedora rawhide
+Resolves: RHEL-70849
+- Support using systemd containers
+Resolves: RHEL-76352
+- Allow svirt_t connect to unconfined_t over a unix domain socket
+Resolves: RHEL-37539
+- Allow virt_domain to use pulseaudio - conditional
+Resolves: RHEL-1379
+- Allow telnetd read network sysctls
+Resolves: RHEL-58825
+- Allow alsa watch generic device directories
+Resolves: RHEL-61472
+- Update switcheroo policy
+Resolves: RHEL-24268
+
+* Wed Jan 15 2025 Zdenek Pytela <zpytela@redhat.com> - 38.1.51-1
+- Allow rsyslog read systemd-logind session files
+Resolves: RHEL-73839
+- Allow samba-bgqd connect to cupsd over an unix domain stream socket
+Resolves: RHEL-72860
+- Allow svirt_t read sysfs files
+Resolves: RHEL-70839
+- Allow xdm dbus chat with power-profiles-daemon
+Resolves: RHEL-61117
+- Update power-profiles-daemon policy
+Resolves: RHEL-61117
+- Confine power-profiles-daemon
+Resolves: RHEL-61117
+- Allow virtqemud domain transition to nbdkit
+Resolves: RHEL-56029
+- Add nbdkit interfaces defined conditionally
+Resolves: RHEL-56029
+- Confine the switcheroo-control service
+Resolves: RHEL-24268
+
+* Fri Dec 13 2024 Zdenek Pytela <zpytela@redhat.com> - 38.1.50-1
+- Allow auditctl signal auditd
+Resolves: RHEL-68969
+- Fix the cups_read_pid_files() interface to use read_files_pattern
+Resolves: RHEL-69517
+- Dontaudit systemd-coredump the sys_resource capability
+Resolves: RHEL-46339
+- Allow rpcd read network sysctls
+Resolves: RHEL-1558
+- Allow irqbalance setpcap capability in the user namespace
+Resolves: RHEL-69564
+- Allow traceroute_t bind rawip sockets to unreserved ports
+Resolves: RHEL-54561
+- Allow svirt_t the sys_rawio capability
+Resolves: RHEL-56955
+- Change /run/sysctl\.d(/.*)? fc entry to /var/run/sysctl\.d(/.*)?
+Resolves: RHEL-56988
+- Exclude container-selinux manpage from selinux-policy-doc
+Resolves: RHEL-69916
+
+* Fri Dec 06 2024 Zdenek Pytela <zpytela@redhat.com> - 38.1.49-1
+- Update virtlogd policy
+Resolves: RHEL-69433
+- Allow svirt_t the sys_rawio capability
+Resolves: RHEL-56955
+- Allow qemu-ga the dac_override and dac_read_search capabilities
+Resolves: RHEL-52476
+- Allow ip the setexec permission
+Resolves: RHEL-62923
+- Allow alsa get attributes filesystems with extended attributes
+Resolves: RHEL-61472
+- Allow bacula execute container in the container domain
+Resolves: RHEL-21168
+- Allow httpd get attributes of dirsrv unit files
+Resolves: RHEL-46808
+- Update samba-bgqd policy
+Resolves: RHEL-69517
+- Allow samba-bgqd read cups config files
+Resolves: RHEL-69517
+- Update policy for samba-bgqd
+Resolves: RHEL-69517
+- Update bootupd policy for the removing-state-file test
+Resolves: RHEL-66584
+- Allow qatlib search the content of the kernel debugging filesystem
+Resolves: RHEL-53864
+- Allow qatlib connect to systemd-machined over a unix socket
+Resolves: RHEL-53864
+- Update qatlib policy for v24.02 with new features
+Resolves: RHEL-53864
+
+* Tue Nov 12 2024 Zdenek Pytela <zpytela@redhat.com> - 38.1.48-1
+- Revert "Allow unconfined_t execute kmod in the kmod domain"
+Resolves: RHEL-65008
+- Add policy for /usr/libexec/samba/samba-bgqd
+Resolves: RHEL-53124
+
+* Wed Oct 23 2024 Zdenek Pytela <zpytela@redhat.com> - 38.1.47-1
+- Label /etc/sysctl.d and /run/sysctl.d with system_conf_t
+Resolves: RHEL-56988
+- Allow lldpad create and use netlink_generic_socket
+Resolves: RHEL-61832
+- Allow unconfined_t execute kmod in the kmod domain
+Resolves: RHEL-54710
+- Allow confined users r/w to screen unix stream socket
+Resolves: RHEL-50379
+- Label /root/.screenrc and /root/.tmux.conf with screen_home_t
+Resolves: RHEL-50375
+- Allow iio-sensor-proxy the bpf capability
+Resolves: RHEL-17346
+
+* Fri Oct 11 2024 Zdenek Pytela <zpytela@redhat.com> - 38.1.46-1
+- Rebuild
+
+* Thu Oct 10 2024 Zdenek Pytela <zpytela@redhat.com> - 35.1.46-1
+- Label /run/modprobe.d with modules_conf_t
+Resolves: RHEL-61453
+- Allow boothd connect to kernel over a unix socket
+Resolves: RHEL-57104
+- Allow boothd connect to systemd-userdbd over a unix socket
+Resolves: RHEL-57104
+- Additional updates stalld policy for bpf usage
+Resolves: RHEL-57075
+- Update stalld policy for bpf usage
+Resolves: RHEL-57075
+- Allow ptp4l the sys_admin capability
+Resolves: RHEL-55133
+- Label /dev/hfi1_[0-9]+ devices
+Resolves: RHEL-54996
+- Confine iio-sensor-proxy
+Resolves: RHEL-17346
+
 * Mon Sep 16 2024 Zdenek Pytela <zpytela@redhat.com> - 38.1.45-3
 - Rebuild
 Resolves: RHEL-55414
