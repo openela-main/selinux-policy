@@ -1,6 +1,6 @@
 # github repo with selinux-policy sources
 %global giturl https://github.com/fedora-selinux/selinux-policy
-%global commit cc594909ed91e01158de01b5d43673ba2e5c8967
+%global commit 446acdeadf4722bb0e559214e31ddbdb1970c71a
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 
 %define distro redhat
@@ -27,7 +27,7 @@
 Summary: SELinux policy configuration
 Name: selinux-policy
 Version: 38.1.53
-Release: 2%{?dist}
+Release: 5%{?dist}
 License: GPLv2+
 Source: %{giturl}/archive/%{commit}/%{name}-%{shortcommit}.tar.gz
 Source1: modules-targeted-base.conf
@@ -478,9 +478,9 @@ rm -rf %{buildroot}%{_sharedstatedir}/selinux/minimum/active/modules/100/sandbox
 
 %if %{BUILD_AUTOMOTIVE}
 # Build automotive policy
-%makeCmds automotive mcs allow
+%makeCmds automotive mcs deny
 %makeModulesConf automotive base contrib
-%installCmds automotive mcs allow
+%installCmds automotive mcs deny
 %modulesList automotive
 %nonBaseModulesList automotive
 %endif
@@ -762,7 +762,7 @@ exit 0
 %package automotive
 Summary: SELinux automotive policy
 Provides: selinux-policy-any = %{version}-%{release}
-Requires(post): policycoreutils-python-utils >= %{POLICYCOREUTILSVER}
+Requires(post): policycoreutils >= %{POLICYCOREUTILSVER}
 Requires(pre): coreutils
 Requires(pre): selinux-policy = %{version}-%{release}
 Requires: selinux-policy = %{version}-%{release}
@@ -906,6 +906,13 @@ exit 0
 %endif
 
 %changelog
+* Fri Apr 11 2025 Vit Mojzis <vmojzis@redhat.com> - 38.1.53-5
+- automotive: Deny unknown classes/permissions (RHEL-87350)
+
+* Fri Mar 14 2025 Zdenek Pytela <zpytela@redhat.com> - 38.1.53-4
+- Allow afterburn to mount and read config drives
+Resolves: RHEL-82276
+
 * Fri Feb 07 2025 Zdenek Pytela <zpytela@redhat.com> - 38.1.53-1
 - Allow svirt_t to connect to nbdkit over a unix stream socket
 Resolves: RHEL-56029
