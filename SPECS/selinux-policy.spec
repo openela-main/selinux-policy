@@ -1,6 +1,6 @@
 # github repo with selinux-policy sources
 %global giturl https://github.com/fedora-selinux/selinux-policy
-%global commit 446acdeadf4722bb0e559214e31ddbdb1970c71a
+%global commit b010cd37abae61184154e1f2b0db330aaa81fbdb
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 
 %define distro redhat
@@ -26,8 +26,8 @@
 %define CHECKPOLICYVER 3.2
 Summary: SELinux policy configuration
 Name: selinux-policy
-Version: 38.1.53
-Release: 5%{?dist}
+Version: 38.1.65
+Release: 1%{?dist}
 License: GPLv2+
 Source: %{giturl}/archive/%{commit}/%{name}-%{shortcommit}.tar.gz
 Source1: modules-targeted-base.conf
@@ -542,7 +542,6 @@ echo "
 SELINUX=enforcing
 # SELINUXTYPE= can take one of these three values:
 #     targeted - Targeted processes are protected,
-#     minimum - Modification of targeted policy. Only selected processes are protected.
 #     mls - Multi Level Security protection.
 SELINUXTYPE=targeted
 
@@ -906,8 +905,164 @@ exit 0
 %endif
 
 %changelog
-* Fri Apr 11 2025 Vit Mojzis <vmojzis@redhat.com> - 38.1.53-5
-- automotive: Deny unknown classes/permissions (RHEL-87350)
+* Thu Aug 21 2025 Zdenek Pytela <zpytela@redhat.com> - 38.1.65-1
+- Revert "Add policy for insights-core"
+Resolves: RHEL-110650
+- Revert "Add insights_core interfaces"
+Resolves: RHEL-110650
+
+* Tue Aug 12 2025 Zdenek Pytela <zpytela@redhat.com> - 38.1.64-1
+- Add insights_core and insights_client interfaces
+Related: RHEL-59145
+- Label /usr/libexec/postfix/tlsproxy with postfix_smtp_exec_t
+Resolves: RHEL-77101
+- Remove "minimum" as a SELINUXTYPE from /etc/selinux/config
+Resolves: RHEL-101140
+
+* Wed Jul 30 2025 Zdenek Pytela <zpytela@redhat.com> - 38.1.63-1
+- Allow samba-dcerpcd send sigkills to passwd
+Resolves: RHEL-100032
+- Allow power-profiles-daemon watch sysfs directories
+Resolves: RHEL-100718
+- Allow power-profiles-daemon write sysfs files
+Resolves: RHEL-100718
+- Allow hostapd write to socket files in /tmp
+Resolves: RHEL-59683
+- Allow irqbalance search sssd lib directories
+Resolves: RHEL-1556
+- Add insights_client_delete_lib_dirs() interface
+Related: RHEL-59145
+
+* Fri Jul 18 2025 Zdenek Pytela <zpytela@redhat.com> - 38.1.62-1
+- Allow "hostapd_cli ping" run as a systemd service
+Resolves: RHEL-59683
+- Allow systemd-timedated start/stop timemaster services
+Resolves: RHEL-95690
+- Allow lldpd connect to systemd-machined over a unix socket
+Resolves: RHEL-96167
+- Allow power-profiles-daemon get attributes of filesystems with extended attributes
+Resolves: RHEL-100718
+- Allow tuned-ppd watch_reads sysfs directories
+Resolves: RHEL-101687
+- Allow tuned-ppd watch sysfs directories
+Resolves: RHEL-101687
+
+* Mon Jul 14 2025 Zdenek Pytela <zpytela@redhat.com> - 38.1.61-1
+- Fix incorrect /run and /usr/bin file context entries
+Resolves: SELINUX-4392
+- Dontaudit irqbalance read sssd public files
+Resolves: RHEL-1556
+- Update sssd_dontaudit_read_public_files()
+Resolves: RHEL-1556
+- Allow insights-client file transition for files in /var/tmp
+Resolves: SELINUX-4392
+- Add the virt_exec_virsh() interface
+Resolves: SELINUX-4392
+- Add the ssh_exec_sshd() interface
+Resolves: SELINUX-4392
+- Add rhsmcertd interfaces
+Resolves: SELINUX-4392
+- Add the bind_exec_named_checkconf() interface
+Resolves: SELINUX-4392
+- Add the auth_write_motd_var_run_files() interface
+Resolves: SELINUX-4392
+- Add the gpg_domtrans_agent() interface
+Resolves: SELINUX-4392
+- Add the gpg_read_user_secrets() interface
+Resolves: SELINUX-4392
+- Add policy for insights-core
+Resolves: SELINUX-4392
+
+* Thu Jul 03 2025 Zdenek Pytela <zpytela@redhat.com> - 38.1.60-1
+- Allow irqbalance execute shell if irqbalance_run_unconfined is on
+Resolves: RHEL-1556
+- Update irqbalance policy for using unconfined scripts
+Resolves: RHEL-1556
+
+* Tue Jul 01 2025 Zdenek Pytela <zpytela@redhat.com> - 38.1.59-1
+- virt: allow QEMU use of the qgs daemon for attestation
+Resolves: RHEL-87744
+- qgs: add contrib module for TDX "qgs" daemon
+Resolves: RHEL-87744
+- kernel: add interfaces for using SGX enclaves
+Resolves: RHEL-87744
+- Allow coreos-installer search sssd library directory
+Resolves: RHEL-95689
+- Label /dev/diag as diagnostic_device_t
+Resolves: RHEL-95342
+- Allow irqbalance execute shell if irqbalance_run_unconfined is on
+Resolves: RHEL-1556
+
+* Mon Jun 09 2025 Zdenek Pytela <zpytela@redhat.com> - 38.1.58-1
+- Allow mptcpd the net_admin capability
+Resolves: RHEL-81729
+- Allow networkmanager send a general signal to iptables
+Resolves: RHEL-93741
+- Make bootupd use bootupd_tmp_t as its private type for files in /tmp
+Resolves: RHEL-94508
+- Update bootupd policy
+Resolves: RHEL-94508
+- Allow switcheroo-control dbus chat with xdm
+Resolves: RHEL-93335
+- Update the files_search_mnt() interface
+Resolves: RHEL-94184
+
+* Thu May 29 2025 Zdenek Pytela <zpytela@redhat.com> - 38.1.57-1
+- Update policy for haproxyd
+Resolves: RHEL-88045
+- Allow NetworkManager manage NetworkManager_etc_rw_t symlinks
+Resolves: RHEL-86178
+- Allow lldpad connect to systemd-userdbd over a unix socket
+Resolves: RHEL-84046
+- Allow gconfd connect to system dbus
+Resolves: RHEL-77984
+- Allow login_pgm read filesystem sysctls
+Resolves: RHEL-77745
+- Allow login_userdomain create /run/tlog directory with user_tmp_t
+Resolves: RHEL-47241
+
+* Tue May 06 2025 Zdenek Pytela <zpytela@redhat.com> - 38.1.56-1
+- Remove 3 permissive domains
+Resolves: RHEL-82674
+- Allow tuned-ppd dbus chat with xdm
+Resolves: RHEL-87203
+- Allow system-dbusd list systemd-machined directories
+Resolves: RHEL-85379
+- Allow NetworkManager create and use icmp_socket
+Resolves: RHEL-83529
+- Allow journalctl connect to systemd-userdbd over a unix socket
+Resolves: RHEL-82673
+- allow gdm and iiosensorproxy talk to each other via D-bus
+Resolves: RHEL-80697
+- Allow varnishd execute the prlimit64() syscall
+Resolves: RHEL-77995
+- Allow system_dbusd_t r/w unix stream sockets of unconfined_service_t
+Resolves: RHEL-61928
+- Add the getattr permission to 2 dontaudit interfaces
+Resolves: RHEL-59145
+
+* Fri Apr 11 2025 Vit Mojzis <vmojzis@redhat.com> - 38.1.55-2
+- automotive: Deny unknown classes/permissions (RHEL-86827)
+
+* Fri Apr 11 2025 Zdenek Pytela <zpytela@redhat.com> - 38.1.55-1
+- Allow tuned-ppd read sssd public files
+Resolves: RHEL-69526
+- Allow systemd-journal-upload read init pid files
+Resolves: RHEL-62196
+- Label SetroubleshootPrivileged.py with setroubleshootd_exec_t
+Resolves: RHEL-77319
+- Allow chronyd-restricted sendto to chronyc
+Resolves: RHEL-82308
+- Allow chronyc sendto to chronyd-restricted
+Resolves: RHEL-82308
+
+* Mon Mar 31 2025 Zdenek Pytela <zpytela@redhat.com> - 38.1.54-1
+- Confine tuned-ppd
+Resolves: RHEL-69526
+- Make tuned work with mls policy
+Resolves: RHEL-69526
+- Allow afterburn to mount and read config drives
+Resolves: RHEL-79319
 
 * Fri Mar 14 2025 Zdenek Pytela <zpytela@redhat.com> - 38.1.53-4
 - Allow afterburn to mount and read config drives
