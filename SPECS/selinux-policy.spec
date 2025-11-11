@@ -4,25 +4,26 @@
 ## END: Set by rpmautospec
 
 # Conditionals for policy types (all built by default)
-%bcond targeted 1
-%bcond minimum  1
-%bcond mls      1
+%bcond targeted   1
+%bcond minimum    1
+%bcond mls        1
+%bcond automotive 1
 
 # github repo with selinux-policy sources
 %global giturl https://github.com/fedora-selinux/selinux-policy
-%global commit 061ed78f650a71a7f47e9a9dcc20e0880e108346
+%global commit 19d0259329a5004b791557bc7f7ef0b687cc47ff
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 
 %define distro redhat
 %define polyinstatiate n
 %define monolithic n
 
-%define POLICYVER 34
-%define POLICYCOREUTILSVER 3.8
-%define CHECKPOLICYVER 3.8
+%define POLICYVER 35
+%define POLICYCOREUTILSVER 3.9
+%define CHECKPOLICYVER 3.9
 Summary: SELinux policy configuration
 Name: selinux-policy
-Version: 40.13.26
+Version: 42.1.7
 Release: 1%{?dist}
 License: GPL-2.0-or-later
 Source: %{giturl}/archive/%{commit}/%{name}-%{shortcommit}.tar.gz
@@ -38,9 +39,13 @@ Source3: macro-expander
 Source4: container-selinux.tgz
 
 # do not ship these modules
-Source15: modules-filtered.lst
+Source13: process-modules-filtered.py
+Source14: modules-extra.lst
+Source15: modules-dropped.lst
+
 # modules enabled in -minimum policy
 Source16: modules-minimum.lst
+Source17: modules-automotive.lst
 
 Source36: selinux-check-proper-disable.service
 
@@ -49,6 +54,8 @@ Source37: varrun-convert.sh
 # Configuration files to dnf-protect targeted and/or mls subpackages
 Source38: selinux-policy-targeted.conf
 Source39: selinux-policy-mls.conf
+# Script to convert /usr/sbin file context entries to /usr/bin
+Source40: binsbin-convert.sh
 
 # Provide rpm macros for packages installing SELinux modules
 Source5: rpm.macros
@@ -82,7 +89,20 @@ the policy has been adjusted to provide support for Fedora.
 %{_usr}/lib/tmpfiles.d/selinux-policy.conf
 %{_rpmconfigdir}/macros.d/macros.selinux-policy
 %{_unitdir}/selinux-check-proper-disable.service
+%{_libexecdir}/selinux/binsbin-convert.sh
 %{_libexecdir}/selinux/varrun-convert.sh
+
+%package extra
+Summary: SELinux policy - extra modules
+Requires: (selinux-policy-targeted-extra if selinux-policy-targeted)
+Requires: (selinux-policy-mls-extra if selinux-policy-mls)
+Provides: selinux-policy-epel = %{version}-%{release}
+Obsoletes: selinux-policy-epel < 40.13.31-2
+
+%description extra
+SELinux policy - extra modules
+
+%files extra
 
 %package sandbox
 Summary: SELinux sandbox policy
@@ -170,7 +190,8 @@ install -p -m0644 ./dist/%1/booleans.conf ./policy/booleans.conf \
 install -p -m0644 ./dist/%1/users ./policy/users \
 
 %define makeModulesConf() \
-install -p -m0644 ./dist/%1/modules.conf ./policy/modules.conf \
+# install -p -m0644 ./dist/%1/modules.conf ./policy/modules.conf \
+%{SOURCE13} %{SOURCE15} ./dist/%1/modules.conf disabled > ./policy/modules.conf \
 
 %define installCmds() \
 %make_build %common_params UNK_PERMS=%3 NAME=%1 TYPE=%2 base.pp \
@@ -259,6 +280,9 @@ rm -f %{buildroot}%{_sharedstatedir}/selinux/%1/active/*.linked \
 %ghost %{_sharedstatedir}/selinux/%1/active/users_extra.linked \
 %verify(not md5 size mtime) %{_sharedstatedir}/selinux/%1/active/file_contexts.homedirs \
 %verify(not md5 size mtime) %{_sharedstatedir}/selinux/%1/active/modules_checksum \
+%ghost %verify(not mode md5 size mtime) %{_sharedstatedir}/selinux/%1/active/modules/400/extra_binsbin \
+%ghost %verify(not mode md5 size mtime) %{_sharedstatedir}/selinux/%1/active/modules/400/extra_binsbin/cil \
+%ghost %verify(not mode md5 size mtime) %{_sharedstatedir}/selinux/%1/active/modules/400/extra_binsbin/lang_ext \
 %ghost %verify(not mode md5 size mtime) %{_sharedstatedir}/selinux/%1/active/modules/400/extra_varrun \
 %ghost %verify(not mode md5 size mtime) %{_sharedstatedir}/selinux/%1/active/modules/400/extra_varrun/cil \
 %ghost %verify(not mode md5 size mtime) %{_sharedstatedir}/selinux/%1/active/modules/400/extra_varrun/lang_ext \
@@ -328,8 +352,10 @@ awk '$1 !~ "/^#/" && $2 == "=" && $3 == "base" { printf "%%s ", $1 }' ./policy/m
 %define nonBaseModulesList() \
 modules=`cat %{buildroot}%{_datadir}/selinux/%1/modules.lst` \
 for i in $modules; do \
-    if [ $i != "sandbox" ] && ! grep -E "^$i$" %{SOURCE15}; then \
+    if [ $i != "sandbox" ] && ! grep -E "^$i$" %{SOURCE14}; then \
         echo "%verify(not md5 size mtime) %{_sharedstatedir}/selinux/%1/active/modules/100/$i" >> %{buildroot}%{_datadir}/selinux/%1/nonbasemodules.lst \
+    elif grep -E "^$i$" %{SOURCE14}; then \
+        echo "%verify(not md5 size mtime) %{_sharedstatedir}/selinux/%1/active/modules/100/$i" >> %{buildroot}%{_datadir}/selinux/%1/modules-extra.lst \
     else \
         rm -rf %{buildroot}%{_sharedstatedir}/selinux/{targeted,minimum,mls}/active/modules/100/$i \
     fi \
@@ -395,6 +421,12 @@ if posix.access ("%{_sharedstatedir}/selinux/%1/active/modules/400/extra_varrun/
   os.execute ("%{_bindir}/rm -rf %{_sharedstatedir}/selinux/%1/active/modules/400/extra_varrun") \
 end
 
+# Remove the local_binsbin SELinux module
+%define removeBinsbinModuleLua() \
+if posix.access ("%{_sharedstatedir}/selinux/%1/active/modules/400/extra_binsbin/cil", "r") then \
+  os.execute ("%{_bindir}/rm -rf %{_sharedstatedir}/selinux/%1/active/modules/400/extra_binsbin") \
+end
+
 %build
 
 %prep
@@ -414,10 +446,11 @@ mkdir -p %{buildroot}%{_bindir}
 install -p -m 755 %{SOURCE3} %{buildroot}%{_bindir}/
 mkdir -p %{buildroot}%{_libexecdir}/selinux
 install -p -m 755  %{SOURCE37} %{buildroot}%{_libexecdir}/selinux
+install -p -m 755  %{SOURCE40} %{buildroot}%{_libexecdir}/selinux
 
 # Always create policy module package directories
-mkdir -p %{buildroot}%{_datadir}/selinux/{targeted,mls,minimum,modules}/
-mkdir -p %{buildroot}%{_sharedstatedir}/selinux/{targeted,mls,minimum,modules}/
+mkdir -p %{buildroot}%{_datadir}/selinux/{targeted,mls,minimum,automotive,modules}/
+mkdir -p %{buildroot}%{_sharedstatedir}/selinux/{targeted,mls,minimum,automotive,modules}/
 
 mkdir -p %{buildroot}%{_datadir}/selinux/packages
 
@@ -446,6 +479,8 @@ install -p -m 644 %{SOURCE38} %{buildroot}%{_sysconfdir}/dnf/protected.d/
 # Build minimum policy
 %makeCmds minimum mcs allow
 %makeModulesConf targeted
+mv ./policy/modules.conf ./policy/modules.conf.dropped
+%{SOURCE13} %{SOURCE14} ./policy/modules.conf.dropped disabled > ./policy/modules.conf
 %installCmds minimum mcs allow
 rm -rf %{buildroot}%{_sharedstatedir}/selinux/minimum/active/modules/100/sandbox
 install -p -m 644 %{SOURCE16} %{buildroot}%{_datadir}/selinux/minimum/modules-enabled.lst
@@ -463,8 +498,21 @@ install -p -m 644 %{SOURCE16} %{buildroot}%{_datadir}/selinux/minimum/modules-en
 install -p -m 644 %{SOURCE39} %{buildroot}%{_sysconfdir}/dnf/protected.d/
 %endif
 
+%if %{with automotive}
+# Build automotive policy
+%makeCmds automotive mcs deny
+%makeModulesConf targeted
+mv ./policy/modules.conf ./policy/modules.conf.dropped
+%{SOURCE13} %{SOURCE14} ./policy/modules.conf.dropped disabled > ./policy/modules.conf
+%installCmds automotive mcs deny
+rm -rf %{buildroot}%{_sharedstatedir}/selinux/automotive/active/modules/100/sandbox
+install -p -m 644 %{SOURCE17} %{buildroot}%{_datadir}/selinux/automotive/modules-enabled.lst
+%modulesList automotive
+%nonBaseModulesList automotive
+%endif
+
 # remove leftovers when save-previous=true (semanage.conf) is used
-rm -rf %{buildroot}%{_sharedstatedir}/selinux/{minimum,targeted,mls}/previous
+rm -rf %{buildroot}%{_sharedstatedir}/selinux/{minimum,targeted,mls,automotive}/previous
 
 make %common_params UNK_PERMS=allow NAME=targeted TYPE=mcs DESTDIR=%{buildroot} PKGNAME=%{name} install-docs
 make %common_params UNK_PERMS=allow NAME=targeted TYPE=mcs DESTDIR=%{buildroot} PKGNAME=%{name} install-headers
@@ -567,6 +615,7 @@ SELinux targeted policy package.
 %pretrans targeted -p <lua>
 %backupConfigLua
 %removeVarrunModuleLua targeted
+%removeBinsbinModuleLua targeted
 
 %pre targeted
 %preInstall targeted
@@ -578,8 +627,10 @@ exit 0
 %posttrans targeted
 %checkConfigConsistency targeted
 %{_libexecdir}/selinux/varrun-convert.sh targeted
+%{_libexecdir}/selinux/binsbin-convert.sh targeted
 %postInstall $1 targeted
 %{_sbindir}/restorecon -Ri /usr/lib/sysimage/rpm /var/lib/rpm /etc/mdevctl.d
+%{_sbindir}/restorecon -i /usr/sbin/fapolicyd* /usr/sbin/usbguard*
 
 %postun targeted
 if [ $1 = 0 ]; then
@@ -602,11 +653,29 @@ exit 0
 %{_sbindir}/selinuxenabled && %{_sbindir}/semodule -nB 2> /dev/null
 exit 0
 
+%triggerin -- fapolicyd-selinux
+%{_libexecdir}/selinux/binsbin-convert.sh targeted
+%{_sbindir}/restorecon /usr/sbin/fapolicyd*
+
+%triggerin -- usbguard-selinux
+%{_libexecdir}/selinux/binsbin-convert.sh targeted
+%{_sbindir}/restorecon /usr/sbin/usbguard*
+
 %triggerprein -p <lua> -- container-selinux
 %removeVarrunModuleLua targeted
 
 %triggerprein -p <lua> -- pcp-selinux
 %removeVarrunModuleLua targeted
+
+%triggerprein -p <lua> -- fapolicyd-selinux
+%removeBinsbinModuleLua targeted
+
+%triggerprein -p <lua> -- usbguard-selinux
+%removeBinsbinModuleLua targeted
+
+%triggerpostun -- selinux-policy-targeted < 3.12.1-74
+rm -f %{_sysconfdir}/selinux/*/modules/active/modules/sandbox.pp.disabled 2>/dev/null
+exit 0
 
 %triggerpostun -- pcp-selinux
 %{_libexecdir}/selinux/varrun-convert.sh targeted
@@ -616,12 +685,32 @@ exit 0
 %{_libexecdir}/selinux/varrun-convert.sh targeted
 exit 0
 
+%triggerpostun -- fapolicyd-selinux
+%{_libexecdir}/selinux/binsbin-convert.sh targeted
+exit 0
+
+%triggerpostun -- usbguard-selinux
+%{_libexecdir}/selinux/binsbin-convert.sh targeted
+exit 0
+
 %files targeted -f %{buildroot}%{_datadir}/selinux/targeted/nonbasemodules.lst
 %config(noreplace) %{_sysconfdir}/dnf/protected.d/selinux-policy-targeted.conf
 %config(noreplace) %{_sysconfdir}/selinux/targeted/contexts/users/unconfined_u
 %config(noreplace) %{_sysconfdir}/selinux/targeted/contexts/users/sysadm_u
 %fileList targeted
 %verify(not md5 size mtime) %{_sharedstatedir}/selinux/targeted/active/modules/100/permissivedomains
+
+%package targeted-extra
+Summary: SELinux targeted policy - extra modules
+Requires: selinux-policy-targeted = %{version}-%{release}
+Provides: selinux-policy-epel-targeted = %{version}-%{release}
+Obsoletes: selinux-policy-epel-targeted < 40.13.31-2
+
+%description targeted-extra
+SELinux targeted policy package - extra modules
+
+%files targeted-extra -f %{buildroot}%{_datadir}/selinux/targeted/modules-extra.lst
+%{_datadir}/selinux/targeted/modules-extra.lst
 %endif
 
 %if %{with minimum}
@@ -684,6 +773,7 @@ exit 0
 %posttrans minimum
 %checkConfigConsistency minimum
 %{_libexecdir}/selinux/varrun-convert.sh minimum
+%{_libexecdir}/selinux/binsbin-convert.sh minimum
 %{_sbindir}/restorecon -Ri /usr/lib/sysimage/rpm /var/lib/rpm
 
 %postun minimum
@@ -707,6 +797,87 @@ exit 0
 %config(noreplace) %{_sysconfdir}/selinux/minimum/contexts/users/sysadm_u
 %fileList minimum
 %{_datadir}/selinux/minimum/modules-enabled.lst
+%endif
+
+%if %{with automotive}
+%package automotive
+Summary: SELinux automotive policy
+Provides: selinux-policy-any = %{version}-%{release}
+Requires(post): policycoreutils >= %{POLICYCOREUTILSVER}
+Requires(pre): coreutils
+Requires(pre): selinux-policy = %{version}-%{release}
+Requires: selinux-policy = %{version}-%{release}
+Conflicts: seedit
+Conflicts: container-selinux <= 1.9.0-9
+
+%description automotive
+SELinux automotive policy package.
+
+%pretrans automotive -p <lua>
+%backupConfigLua
+
+%pre automotive
+%preInstall automotive
+if [ $1 -ne 1 ]; then
+    %{_sbindir}/semodule -s automotive --list-modules=full | awk '{ if ($4 != "disabled") print $2; }' > %{_datadir}/selinux/automotive/instmodules.lst
+fi
+
+%post automotive
+%checkConfigConsistency automotive
+modules=`cat %{_datadir}/selinux/automotive/modules.lst`
+basemodules=`cat %{_datadir}/selinux/automotive/base.lst`
+enabledmodules=`cat %{_datadir}/selinux/automotive/modules-enabled.lst`
+if [ ! -d %{_sharedstatedir}/selinux/automotive/active/modules/disabled ]; then
+    mkdir %{_sharedstatedir}/selinux/automotive/active/modules/disabled
+fi
+if [ $1 -eq 1 ]; then
+for p in $modules; do
+    touch %{_sharedstatedir}/selinux/automotive/active/modules/disabled/$p
+done
+for p in $basemodules $enabledmodules; do
+    rm -f %{_sharedstatedir}/selinux/automotive/active/modules/disabled/$p
+done
+%{_sbindir}/restorecon -R /root /var/log /var/run 2> /dev/null
+%{_sbindir}/semodule -B -s automotive 2> /dev/null
+else
+instpackages=`cat %{_datadir}/selinux/automotive/instmodules.lst`
+for p in $modules; do
+    touch %{_sharedstatedir}/selinux/automotive/active/modules/disabled/$p
+done
+for p in $instpackages; do
+    rm -f %{_sharedstatedir}/selinux/automotive/active/modules/disabled/$p
+done
+%{_sbindir}/semodule -B -s automotive 2> /dev/null
+%relabel automotive
+fi
+exit 0
+
+%posttrans automotive
+%checkConfigConsistency automotive
+%{_libexecdir}/selinux/varrun-convert.sh automotive
+%{_sbindir}/restorecon -Ri /usr/lib/sysimage/rpm /var/lib/rpm
+
+%postun automotive
+if [ $1 = 0 ]; then
+    if [ -s %{_sysconfdir}/selinux/config ]; then
+        source %{_sysconfdir}/selinux/config &> /dev/null || true
+    fi
+    if [ "$SELINUXTYPE" = "automotive" ]; then
+        %{_sbindir}/setenforce 0 2> /dev/null
+        if [ ! -s %{_sysconfdir}/selinux/config ]; then
+            echo "SELINUX=disabled" > %{_sysconfdir}/selinux/config
+        else
+            sed -i 's/^SELINUX=.*/SELINUX=disabled/g' %{_sysconfdir}/selinux/config
+        fi
+    fi
+fi
+exit 0
+
+%files automotive -f %{buildroot}%{_datadir}/selinux/automotive/nonbasemodules.lst
+%config(noreplace) %{_sysconfdir}/selinux/automotive/contexts/users/unconfined_u
+%config(noreplace) %{_sysconfdir}/selinux/automotive/contexts/users/sysadm_u
+%fileList automotive
+%{_datadir}/selinux/automotive/modules-enabled.lst
 %endif
 
 %if %{with mls}
@@ -738,6 +909,7 @@ exit 0
 %posttrans mls
 %checkConfigConsistency mls
 %{_libexecdir}/selinux/varrun-convert.sh mls
+%{_libexecdir}/selinux/binsbin-convert.sh mls
 %postInstall $1 mls
 %{_sbindir}/restorecon -Ri /usr/lib/sysimage/rpm /var/lib/rpm
 
@@ -761,10 +933,270 @@ exit 0
 %config(noreplace) %{_sysconfdir}/dnf/protected.d/selinux-policy-mls.conf
 %config(noreplace) %{_sysconfdir}/selinux/mls/contexts/users/unconfined_u
 %fileList mls
+
+%package mls-extra
+Summary: SELinux mls policy - extra modules
+Requires: selinux-policy-mls = %{version}-%{release}
+Provides: selinux-policy-epel-mls = %{version}-%{release}
+Obsoletes: selinux-policy-epel-mls < 40.13.31-2
+
+%description mls-extra
+SELinux mls policy package - extra modules
+
+%files mls-extra -f %{buildroot}%{_datadir}/selinux/mls/modules-extra.lst
+%{_datadir}/selinux/mls/modules-extra.lst
 %endif
 
 %changelog
 ## START: Generated by rpmautospec
+* Thu Aug 21 2025 Zdenek Pytela <zpytela@redhat.com> - 42.1.7-1
+- Revert "Add policy for insights-core"
+Resolves: RHEL-110651
+- Revert "Add insights_core interfaces"
+Resolves: RHEL-110651
+
+* Wed Aug 13 2025 Vit Mojzis <vmojzis@redhat.com> - 42.1.6-2
+- Add selinux-policy-automotive sub-package (RHEL-105410)
+
+* Tue Aug 12 2025 Zdenek Pytela <zpytela@redhat.com> - 42.1.6-1
+- Apply generator template to selinux-autorelabel generator
+Resolves: RHEL-107516
+- Allow systemd-coredumpd capabilities in the user namespace
+Resolves: RHEL-97586
+- Allow virtqemud start a vm which uses nbdkit
+Resolves: RHEL-69118
+- Add nbdkit_signal() and nbdkit_signull() interfaces
+Resolves: RHEL-69118
+- Allow openvswitch read virtqemud process state
+Resolves: RHEL-65322
+- Add binsbin-convert.sh script
+Resolves: RHEL-69118
+
+* Fri Aug 08 2025 Zdenek Pytela <zpytela@redhat.com> - 42.1.5-1
+- Confine nfs-server generator
+Resolves: RHEL-106119
+- Support virtqemud handle hotplug hostdev devices
+Resolves: RHEL-65266
+- Allow virtstoraged create qemu /var/run files
+Resolves: RHEL-104344
+- Allow virtqemud write to sysfs files
+Resolves: RHEL-104378
+- Allow unconfined_domain_type cap2_userns capabilities
+Resolves: RHEL-93656
+
+* Thu Jul 31 2025 Zdenek Pytela <zpytela@redhat.com> - 42.1.4-1
+- Allow systemd-coredump the sys_chroot capability
+Resolves: RHEL-97586
+- Add the rhcd_rw_fifo_files() interface
+Related: RHEL-99318
+- Add insights_client_delete_lib_dirs() interface
+Related: RHEL-99318
+
+* Wed Jul 23 2025 Vit Mojzis <vmojzis@redhat.com> - 42.1.3-2
+- Rebuild for SELinux userspace 3.9
+
+* Fri Jul 18 2025 Zdenek Pytela <zpytela@redhat.com> - 42.1.3-1
+- Allow svirt read virtqemud fifo files
+Resolves: RHEL-104069
+- Allow virtqemud handle virt_content_t chr files
+Resolves: RHEL-76104
+- Allow "hostapd_cli ping" run as a systemd service
+Resolves: RHEL-77047
+- All sblim-sfcbd the dac_read_search capability
+Resolves: RHEL-98287
+- Allow sblim domain read systemd session files
+Resolves: RHEL-98287
+- Allow sblim-sfcbd execute dnsdomainname
+Resolves: RHEL-98287
+- Allow systemd-importd create and unlink init pid socket
+Resolves: RHEL-98490
+
+* Wed Jul 16 2025 Zdenek Pytela <zpytela@redhat.com> - 42.1.2-1
+- Remove permissive domains
+Resolves: RHEL-103661
+- Adjust modules list
+Resolves: RHEL-103661
+
+* Mon Jul 14 2025 Zdenek Pytela <zpytela@redhat.com> - 42.1.1-1
+- Rebase selinux-policy to the newest one available in Fedora 42
+Resolves: RHEL-54303
+
+* Wed Jul 02 2025 Zdenek Pytela <zpytela@redhat.com> - 40.13.35-1
+- Remove duplicate summary header
+Related: RHEL-87742
+- Allow irqbalance execute shell if irqbalance_run_unconfined is on
+Resolves: RHEL-54019
+- virt: allow QEMU use of the qgs daemon for attestation
+Resolves: RHEL-87742
+- qgs: add contrib module for TDX "qgs" daemon
+Resolves: RHEL-87742
+- kernel: add interfaces for using SGX enclaves
+Resolves: RHEL-87742
+
+* Tue Jul 01 2025 Zdenek Pytela <zpytela@redhat.com> - 40.13.34-1
+- Allow systemd-coredump the sys_admin capability
+Resolves: RHEL-97586
+- Dontaudit systemd-coredump the sys_resource capability
+Resolves: RHEL-97586
+- Allow systemd-coredumpd sys_admin and sys_resource capabilities
+Resolves: RHEL-97586
+- Allow systemd-coredump read nsfs files
+Resolves: RHEL-97586
+- Dontaudit systemd-coredump sys_admin capability
+Resolves: RHEL-97586
+- Allow svirt-tcg read init state
+Resolves: RHEL-95725
+- Allow virtqemud create and unlink files in /etc/libvirt/
+Resolves: RHEL-95725
+- Allow virtqemud send a generic signal to passt
+Resolves: RHEL-44994
+- Allow openvswitch ioctl vduse devices
+Resolves: RHEL-93041
+- Label /dev/vduse/control and /dev/vduse/NAME devices
+Resolves: RHEL-93041
+- Allow virtstoraged the sys_rawio capability
+Resolves: RHEL-44639
+- Allow virtstoraged fsetid capability
+Resolves: RHEL-44639
+- Allow virtqemud additional permissions on scsi generic chr files
+Resolves: RHEL-44628
+- Allow irqbalance execute shell if irqbalance_run_unconfined is on
+Resolves: RHEL-54019
+- Fix files_dontaudit_delete_all_files()
+Resolves: RHEL-86789
+- Allow virtnodedev create mdevctl config dirs
+Resolves: RHEL-98559
+- Allow cryptsetup-generator manage systemd unit files
+Resolves: RHEL-98656
+
+* Fri Jun 06 2025 Zdenek Pytela <zpytela@redhat.com> - 40.13.33-1
+- Allow systemd_generator read files in /proc and /sys
+Resolves: RHEL-36740
+- Update irqbalance policy for using unconfined scripts
+Resolves: RHEL-54019
+- Allow utempter use terminal multiplexor
+Resolves: RHEL-56344
+- Allow virtqemud execute ovs-vsctl with a domain transition
+Resolves: RHEL-65322
+- Allow mptcpd the net_admin capability
+Resolves: RHEL-70730
+- Allow tomcat execute cracklib-check with a domain transition
+Resolves: RHEL-82090
+- Update the files_search_mnt() interface
+Resolves: RHEL-85178
+- Allow key.dns_resolve set attributes on the kernel key ring
+Resolves: RHEL-91602
+- Allow switcheroo-control dbus chat with xdm
+Resolves: RHEL-93535
+- Revert "Allow virt_domain write to virt_image_t files"
+Resolves: RHEL-93773
+
+* Thu May 29 2025 Zdenek Pytela <zpytela@redhat.com> - 40.13.32-1
+- Backport policy for additional systemd generators from rawhide
+Resolves: RHEL-36740
+- Allow login_userdomain create /run/tlog directory with user_tmp_t
+Resolves: RHEL-56344
+- Backport bootupd policy from current Fedora rawhide
+Resolves: RHEL-86588
+
+* Wed May 21 2025 Petr Lautrbach <lautrbach@redhat.com> - 40.13.31-2
+- Build selinux-policy-extra packages
+- Obsolete selinux-policy-epel packages
+
+* Tue May 20 2025 Zdenek Pytela <zpytela@redhat.com> - 40.13.31-1
+- Label /dev/diag as diagnostic_device_t
+Resolves: RHEL-89804
+- Label SetroubleshootPrivileged.py with setroubleshootd_exec_t
+Resolves: RHEL-87727
+- Allow syslogd watch syslog_conf_t directories
+Resolves: RHEL-87648
+- Allow networkmanager send a general signal to iptables
+Resolves: RHEL-86780
+- Define file equivalency for /var/etc
+Resolves: RHEL-86678
+- Update bootupd policy when ESP is not mounted
+Resolves: RHEL-86588
+- dontaudit execmem for modemmanager
+Resolves: RHEL-86176
+- Allow systemd create journal pid files
+Resolves: RHEL-72692
+- Allow virtqemud read/write/setattr input event devices
+Resolves: RHEL-46385
+
+* Mon Apr 28 2025 Zdenek Pytela <zpytela@redhat.com> - 40.13.30-1
+- Allow auditctl signal auditd
+Resolves: RHEL-87418
+- Update bootupd policy for the removing-state-file test
+Resolves: RHEL-87372
+- Allow systemd-user-runtime-dir get/set tmpfs quotas
+Resolves: RHEL-86789
+- Allow systemd-user-runtime-dir delete gnome homedir content
+Resolves: RHEL-86789
+- Confine /usr/lib/systemd/systemd-user-runtime-dir
+Resolves: RHEL-86789
+- Allow system-dbusd list systemd-machined directories
+Resolves: RHEL-86528
+- Allow NetworkManager create and use icmp_socket
+Resolves: RHEL-86258
+- Allow tuned-ppd dbus chat with xdm
+Resolves: RHEL-85849
+- Allow virt_domain write to virt_image_t files
+Resolves: RHEL-85319
+- Allow rhsmcertd connect to systemd-machined
+Resolves: RHEL-83925
+- Allow varnishd execute the prlimit64() syscall
+Resolves: RHEL-77779
+- Allow systemd-machined the kill user-namespace capability
+Resolves: RHEL-77087
+- Allow system_dbusd_t r/w unix stream sockets of unconfined_service_t
+Resolves: RHEL-62185
+- Allow tlshd read network sysctls
+Resolves: RHEL-74424
+
+* Tue Apr 15 2025 Zdenek Pytela <zpytela@redhat.com> - 40.13.29-1
+- Revert "Dontaudit access of virt-related permissive domains"
+Resolves: RHEL-79833
+- Remove permissive domains
+Resolves: RHEL-82672
+
+* Tue Apr 08 2025 Zdenek Pytela <zpytela@redhat.com> - 40.13.28-1
+- Change path of tuned and tuned-ppd to /usr/sbin
+Resolves: RHEL-69450
+- Update the pcmsensor policy
+Resolves: RHEL-80452
+- Allow dovecot-deliver read mail aliases
+Resolves: RHEL-80153
+- Allow boothd connect to systemd-machined over a unix socket
+Resolves: RHEL-75471
+- Allow chronyd-restricted sendto to chronyc
+Resolves: RHEL-82299
+- Allow chronyc sendto to chronyd-restricted
+Resolves: RHEL-82299
+- Allow cifs.idmap helper to set attributes on kernel keys
+Resolves: RHEL-83921
+- Remove ktls from modules-filtered.lst
+Resolves: RHEL-74424
+
+* Mon Mar 31 2025 Zdenek Pytela <zpytela@redhat.com> - 40.13.27-1
+- Allow afterburn to mount and read config drives
+Resolves: RHEL-82120
+- Update afterburn file transition policy
+Resolves: RHEL-82120
+- Label /run/metadata with afterburn_runtime_t
+Resolves: RHEL-82120
+- Allow afterburn list ssh home directory
+Resolves: RHEL-82120
+- Confine tuned-ppd
+Resolves: RHEL-69450
+- Update ktls policy
+Resolves: RHEL-74424
+- Add the switcheroo module
+Resolves: RHEL-83267
+- Update switcheroo policy
+Resolves: RHEL-83267
+- Confine the switcheroo-control service
+Resolves: RHEL-83267
+
 * Mon Feb 17 2025 Zdenek Pytela <zpytela@redhat.com> - 40.13.26-1
 - Rename winbind_rpcd_* types to samba_dcerpcd_*
 Resolves: RHEL-14759
@@ -1315,186 +1747,5 @@ Resolves: RHEL-36073
 Resolves: RHEL-30455
 - Update rpm configuration for the /var/run equivalency change
 Resolves: RHEL-36094
-
-* Mon Feb 12 2024 Zdenek Pytela <zpytela@redhat.com> - 40.13-1
-- Only allow confined user domains to login locally without unconfined_login
-- Add userdom_spec_domtrans_confined_admin_users interface
-- Only allow admindomain to execute shell via ssh with ssh_sysadm_login
-- Add userdom_spec_domtrans_admin_users interface
-- Move ssh dyntrans to unconfined inside unconfined_login tunable policy
-- Update ssh_role_template() for user ssh-agent type
-- Allow init to inherit system DBus file descriptors
-- Allow init to inherit fds from syslogd
-- Allow any domain to inherit fds from rpm-ostree
-- Update afterburn policy
-- Allow init_t nnp domain transition to abrtd_t
-
-* Tue Feb 06 2024 Zdenek Pytela <zpytela@redhat.com> - 40.12-1
-- Rename all /var/lock file context entries to /run/lock
-- Rename all /var/run file context entries to /run
-- Invert the "/var/run = /run" equivalency
-
-* Mon Feb 05 2024 Zdenek Pytela <zpytela@redhat.com> - 40.11-1
-- Replace init domtrans rule for confined users to allow exec init
-- Update dbus_role_template() to allow user service status
-- Allow polkit status all systemd services
-- Allow setroubleshootd create and use inherited io_uring
-- Allow load_policy read and write generic ptys
-- Allow gpg manage rpm cache
-- Allow login_userdomain name_bind to howl and xmsg udp ports
-- Allow rules for confined users logged in plasma
-- Label /dev/iommu with iommu_device_t
-- Remove duplicate file context entries in /run
-- Dontaudit getty and plymouth the checkpoint_restore capability
-- Allow su domains write login records
-- Revert "Allow su domains write login records"
-- Allow login_userdomain delete session dbusd tmp socket files
-- Allow unix dgram sendto between exim processes
-- Allow su domains write login records
-- Allow smbd_t to watch user_home_dir_t if samba_enable_home_dirs is on
-
-* Wed Jan 24 2024 Zdenek Pytela <zpytela@redhat.com> - 40.10-1
-- Allow chronyd-restricted read chronyd key files
-- Allow conntrackd_t to use bpf capability2
-- Allow systemd-networkd manage its runtime socket files
-- Allow init_t nnp domain transition to colord_t
-- Allow polkit status systemd services
-- nova: Fix duplicate declarations
-- Allow httpd work with PrivateTmp
-- Add interfaces for watching and reading ifconfig_var_run_t
-- Allow collectd read raw fixed disk device
-- Allow collectd read udev pid files
-- Set correct label on /etc/pki/pki-tomcat/kra
-- Allow systemd domains watch system dbus pid socket files
-- Allow certmonger read network sysctls
-- Allow mdadm list stratisd data directories
-- Allow syslog to run unconfined scripts conditionally
-- Allow syslogd_t nnp_transition to syslogd_unconfined_script_t
-- Allow qatlib set attributes of vfio device files
-
-* Tue Jan 09 2024 Zdenek Pytela <zpytela@redhat.com> - 40.9-1
-- Allow systemd-sleep set attributes of efivarfs files
-- Allow samba-dcerpcd read public files
-- Allow spamd_update_t the sys_ptrace capability in user namespace
-- Allow bluetooth devices work with alsa
-- Allow alsa get attributes filesystems with extended attributes
-
-* Tue Jan 02 2024 Yaakov Selkowitz <yselkowi@redhat.com> - 40.8-2
-- Limit %%selinux_requires to version, not release
-
-* Thu Dec 21 2023 Zdenek Pytela <zpytela@redhat.com> - 40.8-1
-- Allow hypervkvp_t write access to NetworkManager_etc_rw_t
-- Add interface for write-only access to NetworkManager rw conf
-- Allow systemd-sleep send a message to syslog over a unix dgram socket
-- Allow init create and use netlink netfilter socket
-- Allow qatlib load kernel modules
-- Allow qatlib run lspci
-- Allow qatlib manage its private runtime socket files
-- Allow qatlib read/write vfio devices
-- Label /etc/redis.conf with redis_conf_t
-- Remove the lockdown-class rules from the policy
-- Allow init read all non-security socket files
-- Replace redundant dnsmasq pattern macros
-- Remove unneeded symlink perms in dnsmasq.if
-- Add additions to dnsmasq interface
-- Allow nvme_stas_t create and use netlink kobject uevent socket
-- Allow collectd connect to statsd port
-- Allow keepalived_t to use sys_ptrace of cap_userns
-- Allow dovecot_auth_t connect to postgresql using UNIX socket
-
-* Wed Dec 13 2023 Zdenek Pytela <zpytela@redhat.com> - 40.7-1
-- Make named_zone_t and named_var_run_t a part of the mountpoint attribute
-- Allow sysadm execute traceroute in sysadm_t domain using sudo
-- Allow sysadm execute tcpdump in sysadm_t domain using sudo
-- Allow opafm search nfs directories
-- Add support for syslogd unconfined scripts
-- Allow gpsd use /dev/gnss devices
-- Allow gpg read rpm cache
-- Allow virtqemud additional permissions
-- Allow virtqemud manage its private lock files
-- Allow virtqemud use the io_uring api
-- Allow ddclient send e-mail notifications
-- Allow postfix_master_t map postfix data files
-- Allow init create and use vsock sockets
-- Allow thumb_t append to init unix domain stream sockets
-- Label /dev/vas with vas_device_t
-- Change domain_kernel_load_modules boolean to true
-- Create interface selinux_watch_config and add it to SELinux users
-
-* Tue Nov 28 2023 Zdenek Pytela <zpytela@redhat.com> - 40.6-1
-- Add afterburn to modules-targeted-contrib.conf
-- Update cifs interfaces to include fs_search_auto_mountpoints()
-- Allow sudodomain read var auth files
-- Allow spamd_update_t read hardware state information
-- Allow virtnetworkd domain transition on tc command execution
-- Allow sendmail MTA connect to sendmail LDA
-- Allow auditd read all domains process state
-- Allow rsync read network sysctls
-- Add dhcpcd bpf capability to run bpf programs
-- Dontaudit systemd-hwdb dac_override capability
-- Allow systemd-sleep create efivarfs files
-
-* Tue Nov 14 2023 Zdenek Pytela <zpytela@redhat.com> - 40.5-1
-- Allow map xserver_tmpfs_t files when xserver_clients_write_xshm is on
-- Allow graphical applications work in Wayland
-- Allow kdump work with PrivateTmp
-- Allow dovecot-auth work with PrivateTmp
-- Allow nfsd get attributes of all filesystems
-- Allow unconfined_domain_type use io_uring cmd on domain
-- ci: Only run Rawhide revdeps tests on the rawhide branch
-- Label /var/run/auditd.state as auditd_var_run_t
-- Allow fido-device-onboard (FDO) read the crack database
-- Allow ip an explicit domain transition to other domains
-- Label /usr/libexec/selinux/selinux-autorelabel with semanage_exec_t
-- Allow  winbind_rpcd_t processes access when samba_export_all_* is on
-- Enable NetworkManager and dhclient to use initramfs-configured DHCP connection
-- Allow ntp to bind and connect to ntske port.
-- Allow system_mail_t manage exim spool files and dirs
-- Dontaudit keepalived setattr on keepalived_unconfined_script_exec_t
-- Label /run/pcsd.socket with cluster_var_run_t
-- ci: Run cockpit tests in PRs
-
-* Thu Oct 19 2023 Zdenek Pytela <zpytela@redhat.com> - 40.4-1
-- Add map_read map_write to kernel_prog_run_bpf
-- Allow systemd-fstab-generator read all symlinks
-- Allow systemd-fstab-generator the dac_override capability
-- Allow rpcbind read network sysctls
-- Support using systemd containers
-- Allow sysadm_t to connect to iscsid using a unix domain stream socket
-- Add policy for coreos installer
-- Add coreos_installer to modules-targeted-contrib.conf
-
-* Tue Oct 17 2023 Zdenek Pytela <zpytela@redhat.com> - 40.3-1
-- Add policy for nvme-stas
-- Confine systemd fstab,sysv,rc-local
-- Label /etc/aliases.lmdb with etc_aliases_t
-- Create policy for afterburn
-- Add nvme_stas to modules-targeted-contrib.conf
-- Add plans/tests.fmf
-
-* Tue Oct 10 2023 Zdenek Pytela <zpytela@redhat.com> - 40.2-1
-- Add the virt_supplementary module to modules-targeted-contrib.conf
-- Make new virt drivers permissive
-- Split virt policy, introduce virt_supplementary module
-- Allow apcupsd cgi scripts read /sys
-- Merge pull request #1893 from WOnder93/more-early-boot-overlay-fixes
-- Allow kernel_t to manage and relabel all files
-- Add missing optional_policy() to files_relabel_all_files()
-
-* Tue Oct 03 2023 Zdenek Pytela <zpytela@redhat.com> - 40.1-1
-- Allow named and ndc use the io_uring api
-- Deprecate common_anon_inode_perms usage
-- Improve default file context(None) of /var/lib/authselect/backups
-- Allow udev_t to search all directories with a filesystem type
-- Implement proper anon_inode support
-- Allow targetd write to the syslog pid sock_file
-- Add ipa_pki_retrieve_key_exec() interface
-- Allow kdumpctl_t to list all directories with a filesystem type
-- Allow udev additional permissions
-- Allow udev load kernel module
-- Allow sysadm_t to mmap modules_object_t files
-- Add the unconfined_read_files() and unconfined_list_dirs() interfaces
-- Set default file context of HOME_DIR/tmp/.* to <<none>>
-- Allow kernel_generic_helper_t to execute mount(1)
 
 ## END: Generated by rpmautospec
