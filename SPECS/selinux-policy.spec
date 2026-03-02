@@ -5,7 +5,7 @@
 
 # github repo with selinux-policy contrib sources
 %global git1 https://github.com/fedora-selinux/selinux-policy-contrib
-%global commit1 aadacd8e54ad79d73aca5b869cbd0c135d3a6f4d
+%global commit1 d052cc1e7f872e3b8e9451a847a79d7782e11f96
 %global shortcommit1 %(c=%{commit1}; echo ${c:0:7})
 
 %define distro redhat
@@ -29,7 +29,7 @@
 Summary: SELinux policy configuration
 Name: selinux-policy
 Version: 3.14.3
-Release: 139%{?dist}.1
+Release: 139%{?dist}.2
 License: GPLv2+
 Source: %{git0}/archive/%{commit0}/%{name}-%{shortcommit0}.tar.gz
 Source29: %{git1}/archive/%{commit1}/%{name}-contrib-%{shortcommit1}.tar.gz
@@ -718,6 +718,12 @@ exit 0
 %endif
 
 %changelog
+* Wed Feb 25 2026 Nikita Sanjay Patwa <npatwa@redhat.com> - 3.14.3-139.2
+- Label /etc/redis.conf with redis_conf_t
+Resolves: RHEL-95750
+- Allow nfsd_t domain setuid and setgid capability for rpc.mountd
+Resolves: RHEL-148243
+
 * Fri Oct 25 2024 Zdenek Pytela <zpytela@redhat.com> - 3.14.3-139.1
 - Allow setsebool_t relabel selinux data files
 Resolves: RHEL-55432
