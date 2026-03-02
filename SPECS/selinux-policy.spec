@@ -1,6 +1,6 @@
 # github repo with selinux-policy sources
 %global giturl https://github.com/fedora-selinux/selinux-policy
-%global commit b010cd37abae61184154e1f2b0db330aaa81fbdb
+%global commit d6fe56542b4384ce75a0770fb990382c12c5c786
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 
 %define distro redhat
@@ -27,7 +27,7 @@
 Summary: SELinux policy configuration
 Name: selinux-policy
 Version: 38.1.65
-Release: 1%{?dist}
+Release: 1%{?dist}.1
 License: GPLv2+
 Source: %{giturl}/archive/%{commit}/%{name}-%{shortcommit}.tar.gz
 Source1: modules-targeted-base.conf
@@ -905,6 +905,10 @@ exit 0
 %endif
 
 %changelog
+* Fri Feb 13 2026 Zdenek Pytela <zpytela@redhat.com> - 38.1.65-1.1
+- Allow nfsd_t domain setuid and setgid capability for rpc.mountd
+Resolves: RHEL-148246
+
 * Thu Aug 21 2025 Zdenek Pytela <zpytela@redhat.com> - 38.1.65-1
 - Revert "Add policy for insights-core"
 Resolves: RHEL-110650
