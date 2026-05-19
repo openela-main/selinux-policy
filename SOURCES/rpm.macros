@@ -18,7 +18,10 @@
 
 # RPM macros for packages installing SELinux modules
 
+# Latest version of selinux-policy
 %_selinux_policy_version SELINUXPOLICYVERSION
+# Updated after major policy changes
+%_selinux_policy_stable_version SELINUXPOLICYSTABLE
 
 %_selinux_store_path SELINUXSTOREPATH
 %_selinux_store_policy_path %{_selinux_store_path}/${_policytype}
@@ -31,11 +34,12 @@
 
 # %selinux_requires
 %selinux_requires \
-Requires: selinux-policy >= %{_selinux_policy_version} \
+Requires: selinux-policy >= %{_selinux_policy_stable_version} \
+Recommends: selinux-policy >= %{_selinux_policy_version} \
 BuildRequires: pkgconfig(systemd) \
 BuildRequires: selinux-policy \
 BuildRequires: selinux-policy-devel \
-Requires(post): selinux-policy-base >= %{_selinux_policy_version} \
+Requires(post): selinux-policy-base >= %{_selinux_policy_stable_version} \
 Requires(post): libselinux-utils \
 Requires(post): policycoreutils \
 %if 0%{?fedora} || 0%{?rhel} > 7\

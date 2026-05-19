@@ -1,6 +1,6 @@
 # github repo with selinux-policy sources
 %global giturl https://github.com/fedora-selinux/selinux-policy
-%global commit d6fe56542b4384ce75a0770fb990382c12c5c786
+%global commit 0f93f06b83f8b7d44ba7dd2aeea9fd0596e5d4b5
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 
 %define distro redhat
@@ -24,10 +24,12 @@
 %define POLICYVER 33
 %define POLICYCOREUTILSVER 3.4-1
 %define CHECKPOLICYVER 3.2
+# To be updated after major policy changes
+%define STABLEVER 38.1.70
 Summary: SELinux policy configuration
 Name: selinux-policy
-Version: 38.1.65
-Release: 1%{?dist}.1
+Version: 38.1.75
+Release: 2%{?dist}
 License: GPLv2+
 Source: %{giturl}/archive/%{commit}/%{name}-%{shortcommit}.tar.gz
 Source1: modules-targeted-base.conf
@@ -84,6 +86,7 @@ Requires(post): /bin/awk /usr/bin/sha512sum
 Requires(meta): rpm-plugin-selinux
 Requires: selinux-policy-any = %{version}-%{release}
 Provides: selinux-policy-base = %{version}-%{release}
+Provides: selinux-policy-stable = %{STABLEVER}
 Suggests: selinux-policy-targeted
 
 %description
@@ -505,6 +508,7 @@ mv %{buildroot}%{_datadir}/man/man8/style.css %{buildroot}%{_datadir}/selinux/de
 mkdir -p %{buildroot}%{_rpmconfigdir}/macros.d
 install -m 644 %{SOURCE102} %{buildroot}%{_rpmconfigdir}/macros.d/macros.selinux-policy
 sed -i 's/SELINUXPOLICYVERSION/%{version}-%{release}/' %{buildroot}%{_rpmconfigdir}/macros.d/macros.selinux-policy
+sed -i 's/SELINUXPOLICYSTABLE/%{STABLEVER}/' %{buildroot}%{_rpmconfigdir}/macros.d/macros.selinux-policy
 sed -i 's@SELINUXSTOREPATH@%{_sharedstatedir}/selinux@' %{buildroot}%{_rpmconfigdir}/macros.d/macros.selinux-policy
 
 mkdir -p %{buildroot}%{_unitdir}
@@ -905,9 +909,144 @@ exit 0
 %endif
 
 %changelog
-* Fri Feb 13 2026 Zdenek Pytela <zpytela@redhat.com> - 38.1.65-1.1
+* Mon Mar 09 2026 Zdenek Pytela <zpytela@redhat.com> - 38.1.75-2
+- Rebuild with the target::exception flag
+Resolves: RHEL-148247
+
+* Fri Mar 06 2026 Zdenek Pytela <zpytela@redhat.com> - 38.1.75-1
 - Allow nfsd_t domain setuid and setgid capability for rpc.mountd
-Resolves: RHEL-148246
+Resolves: RHEL-148247
+
+* Mon Feb 23 2026 Zdenek Pytela <zpytela@redhat.com> - 38.1.74-1
+- Label /run/insights-client.ppid with insights_client_run_t
+Resolves: RHEL-146688
+- Update gpg_role() interface with unix_stream_socket permissions
+Resolves: RHEL-128542
+
+* Thu Jan 29 2026 Zdenek Pytela <zpytela@redhat.com> - 38.1.73-1
+- Add the fs_write_tmpfs_files() interface
+Resolves: RHEL-142141
+- Dontaudit aide the execmem permission
+Resolves: RHEL-121480
+- Update gpg policy for interactions with rhc-playbook-verifier
+Resolves: RHEL-132748
+- Allow rhc_playbook_verifier_t stream connect to itself
+Resolves: RHEL-132748
+- Update policy for rhc-worker-playbook
+Resolves: RHEL-132748
+- Allow traceroute_t bind rawip sockets to unreserved ports
+Resolves: RHEL-130267
+- Revert "Allow traceroute_t bind rawip sockets to unreserved ports"
+Related: RHEL-130267
+- Allow sudodomain connect to gkeyringd over a unix stream socket
+Resolves: RHEL-121158
+- Allow samba-bgqd send to smbd over a unix datagram socket
+Resolves: RHEL-95985
+- Allow ssh_agent_type manage generic cache home files
+Resolves: RHEL-121165
+- Label /usr/libexec/openssh/ssh-pkcs11-helper with ssh_agent_exec_t
+Resolves: RHEL-121165
+- Allow boothd connect to systemd-machined over a unix socket
+Resolves: RHEL-140882
+
+* Tue Jan 27 2026 Vit Mojzis <vmojzis@redhat.com> - 38.1.72-2
+- Macros: Require only "stable" version of selinux-policy (RHEL-141433)
+
+* Fri Jan 23 2026 Zdenek Pytela <zpytela@redhat.com> - 38.1.72-1
+- Add insights_client service interfaces
+Related: RHEL-140893
+- Confine rhc-worker-playbook.worker and rhc-playbook-verifier
+Resolves: RHEL-132748
+- Allow gpg manage rpm cache
+Related: RHEL-108775
+- Allow gpg read rpm cache
+Related: RHEL-108775
+- Allow aide get attributes of tmpfs and devtmpfs filesystems
+Resolves: RHEL-121480
+- Allow rules for confined users logged in plasma
+Resolves: RHEL-133898
+- Allow login_userdomain watch lnk_files in /usr
+Resolves: RHEL-133898
+
+* Mon Jan 12 2026 Zdenek Pytela <zpytela@redhat.com> - 38.1.71-1
+- Revert "Allow NM nvme dispatcher script start systemd services"
+Resolves: RHEL-111946
+- Allow ssh_agent_type create a sockfile in /run/user/USERID
+Resolves: RHEL-121936
+- Allow NM nvme dispatcher script start systemd services
+Resolves: RHEL-111946
+- Allow aide get attributes of a filesystem with extended attributes
+Resolves: RHEL-121480
+- Label miscellaneous /dev/papr-* devices
+Resolves: RHEL-129879
+
+* Fri Dec 12 2025 Zdenek Pytela <zpytela@redhat.com> - 38.1.70-1
+- Add the rpm_signal() interface
+Related: RHEL-108826
+- Allow tuned_t use its private tmpfs files
+Related: RHEL-108826
+- Allow kdump search kdumpctl_tmp_t directories
+Resolves: RHEL-66119
+
+* Fri Nov 28 2025 Zdenek Pytela <zpytela@redhat.com> - 38.1.69-1
+- Allow sysadm access to TPM
+Resolves: RHEL-119055
+- Update policy for dhcpc_hook_t
+Resolves: RHEL-113941
+- Allow stap server read virtual memory sysctls
+Resolves: RHEL-114157
+- Allow login_userdomain watch /home and /var directories
+Resolves: RHEL-119686
+- Allow login_userdomain read lastlog
+Resolves: RHEL-119686
+- Allow staff role read/write cockpit-session unix stream sockets
+Resolves: RHEL-108068
+- Label /usr/libexec/dhcpcd-run-hooks with dhcpc_hook_exec_t
+Resolves: RHEL-113941
+
+* Fri Nov 14 2025 Zdenek Pytela <zpytela@redhat.com> - 38.1.68-1
+- Allow insights-client manage /etc symlinks
+Resolves: RHEL-108826
+- Allow insights-client get attributes of the rpm executable
+Resolves: RHEL-127329
+- Allow ras-mc-ctl get attributes of the kmod executable
+Resolves: RHEL-103975
+- Fix files_delete_boot_symlinks() to contain delete_lnk_files_pattern
+Resolves: RHEL-101155
+- Allow bootupd delete symlinks in the /boot directory
+Resolves: RHEL-101155
+- Update policy for bootupd
+Resolves: RHEL-101155
+- Allow create kerberos files in postgresql db home
+Resolves: RHEL-123225
+
+* Tue Oct 14 2025 Zdenek Pytela <zpytela@redhat.com> - 38.1.67-1
+- Allow login_userdomain dbus chat with tuned-ppd
+Resolves: RHEL-113906
+- selinux-policy: add allow rule for tuned_ppd_t
+Resolves: RHEL-113906
+- Add ppd_base_profile to file transition to get tuned_rw_etc_t type
+Resolves: RHEL-113906
+- Allow tuned-ppd manage tuned log files
+Resolves: RHEL-113906
+- Allow tuned-ppd connect to sssd over a unix stream socket
+Resolves: RHEL-113906
+- Allow tuned-ppd create ppd_base_profile with a file transition
+Resolves: RHEL-113906
+- Allow init create and use vsock socket
+Resolves: RHEL-113647
+- Add Valkey rules to Redis module
+Resolves: RHEL-108982
+- Allow ras-mc-ctl write to sysfs files
+Resolves: RHEL-103975
+- Allow kdump search kdumpctl_tmp_t directories
+Resolves: RHEL-66119
+
+* Fri Sep 19 2025 Zdenek Pytela <zpytela@redhat.com> - 38.1.66-1
+- Reapply "Add insights_core interfaces"
+Resolves: RHEL-112367
+- Reapply "Add policy for insights-core"
+Resolves: RHEL-112367
 
 * Thu Aug 21 2025 Zdenek Pytela <zpytela@redhat.com> - 38.1.65-1
 - Revert "Add policy for insights-core"
