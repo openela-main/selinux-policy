@@ -47,6 +47,9 @@ grep ^/usr/sbin ${FILE_CONTEXTS} > ${EXTRA_BINSBIN_ENTRIES_WITHDUP}
 sed -i 's/[ \t]\+/ /g' ${EXTRA_BINSBIN_ENTRIES_WITHDUP}
 sed 's/[ \t]\+/ /g' ${FILE_CONTEXTS} > ${FILE_CONTEXTS_UNIFIED}
 
+# the echo later in this script command changes "\_" to "_"
+sed -i 's/\\_/_/' ${FILE_CONTEXTS_UNIFIED}
+
 # Deduplicate already existing /usr/bin=/usr/sbin entries
 while read line
 do
