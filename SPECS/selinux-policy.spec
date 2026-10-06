@@ -1,6 +1,6 @@
 # github repo with selinux-policy sources
 %global giturl https://github.com/fedora-selinux/selinux-policy
-%global commit 0f93f06b83f8b7d44ba7dd2aeea9fd0596e5d4b5
+%global commit 852edd2bc83dd62b4cb7700ef13cffeb9c10a5ad
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 
 %define distro redhat
@@ -29,7 +29,7 @@
 Summary: SELinux policy configuration
 Name: selinux-policy
 Version: 38.1.75
-Release: 2%{?dist}
+Release: 2%{?dist}.1
 License: GPLv2+
 Source: %{giturl}/archive/%{commit}/%{name}-%{shortcommit}.tar.gz
 Source1: modules-targeted-base.conf
@@ -909,6 +909,12 @@ exit 0
 %endif
 
 %changelog
+* Wed Sep 23 2026 Zdenek Pytela <zpytela@redhat.com> - 38.1.75-2.1
+- Allow pkcsslotd read files in /proc and /sys
+Resolves: RHEL-209599
+- Allow pkcsslotd map its private tmpfs files
+Resolves: RHEL-209599
+
 * Mon Mar 09 2026 Zdenek Pytela <zpytela@redhat.com> - 38.1.75-2
 - Rebuild with the target::exception flag
 Resolves: RHEL-148247
