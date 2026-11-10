@@ -1,6 +1,6 @@
 # github repo with selinux-policy sources
 %global giturl https://github.com/fedora-selinux/selinux-policy
-%global commit 852edd2bc83dd62b4cb7700ef13cffeb9c10a5ad
+%global commit 899a51a9e626f54ce051be22aa7e62616baf887a
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 
 %define distro redhat
@@ -28,8 +28,8 @@
 %define STABLEVER 38.1.70
 Summary: SELinux policy configuration
 Name: selinux-policy
-Version: 38.1.75
-Release: 2%{?dist}.1
+Version: 38.1.86
+Release: 1%{?dist}
 License: GPLv2+
 Source: %{giturl}/archive/%{commit}/%{name}-%{shortcommit}.tar.gz
 Source1: modules-targeted-base.conf
@@ -98,7 +98,13 @@ the policy has been adjusted to provide support for Fedora.
 %{!?_licensedir:%global license %%doc}
 %license COPYING
 %dir %{_datadir}/selinux
+%dir %{_datadir}/selinux/devel
+%dir %{_datadir}/selinux/devel/include
+%dir %{_datadir}/selinux/devel/include/distributed
 %dir %{_datadir}/selinux/packages
+%dir %{_datadir}/selinux/packages/minimum
+%dir %{_datadir}/selinux/packages/mls
+%dir %{_datadir}/selinux/packages/targeted
 %dir %{_sysconfdir}/selinux
 %ghost %config(noreplace) %{_sysconfdir}/selinux/config
 %ghost %{_sysconfdir}/sysconfig/selinux
@@ -442,6 +448,7 @@ mkdir -p %{buildroot}%{_datadir}/selinux/{targeted,mls,minimum,automotive,module
 mkdir -p %{buildroot}%{_sharedstatedir}/selinux/{targeted,mls,minimum,automotive,modules}/
 
 mkdir -p %{buildroot}%{_datadir}/selinux/packages
+mkdir -p %{buildroot}%{_datadir}/selinux/packages/{targeted,mls,minimum}/
 
 # Install devel
 make clean
@@ -497,6 +504,7 @@ make %common_params UNK_PERMS=allow NAME=targeted TYPE=mcs DESTDIR=%{buildroot} 
 make %common_params UNK_PERMS=allow NAME=targeted TYPE=mcs DESTDIR=%{buildroot} PKGNAME=%{name} install-headers
 mkdir %{buildroot}%{_datadir}/selinux/devel/
 mv %{buildroot}%{_datadir}/selinux/targeted/include %{buildroot}%{_datadir}/selinux/devel/include
+mkdir %{buildroot}%{_datadir}/selinux/devel/include/distributed/
 install -m 644 selinux_config/Makefile.devel %{buildroot}%{_datadir}/selinux/devel/Makefile
 install -m 644 doc/example.* %{buildroot}%{_datadir}/selinux/devel/
 install -m 644 doc/policy.* %{buildroot}%{_datadir}/selinux/devel/
@@ -909,11 +917,186 @@ exit 0
 %endif
 
 %changelog
-* Wed Sep 23 2026 Zdenek Pytela <zpytela@redhat.com> - 38.1.75-2.1
-- Allow pkcsslotd read files in /proc and /sys
-Resolves: RHEL-209599
+* Mon Aug 24 2026 Zdenek Pytela <zpytela@redhat.com> - 38.1.86-1
+- Label malware-detection-config.yml with insights_client_etc_rw_t
+Resolves: RHEL-237969
+- Add the files_write_system_conf_files() interface
+Resolves: RHEL-237969
+- Allow rhsmcertd search gconf home data dirs
+Resolves: RHEL-106483
+- Allow rhsmcertd read gconf home files
+Resolves: RHEL-106483
+- Revert "Allow rhsmcertd read gconf home files"
+Resolves: RHEL-106483
+
+* Thu Aug 20 2026 Zdenek Pytela <zpytela@redhat.com> - 38.1.85-1
+- Add the files_map_read_var_files() interface
+Resolves: RHEL-123612
+- Allow login_userdomain mount, remount, unmount all mount points
+Resolves: RHEL-123612
+- Allow login_userdomain mount on all mount points
+Resolves: RHEL-123612
+- rhsmcertd: allow bootc/ostree transient package persistence detection
+Resolves: RHEL-243228
+- Allow dhcpc hook query the chronyd service
+Resolves: RHEL-240725
+- Allow dhcpc_hook_t connect to init_t over a unix stream socket
+Resolves: RHEL-240725
+- Add aliases.lmdb to mta_filetrans_named_content()
+Resolves: RHEL-240445
+- Label /etc/aliases.lmdb with etc_aliases_t
+Resolves: RHEL-240445
+- Allow rhsmcertd read insights-client config files
+Resolves: RHEL-237969
+- Allow rhsmcertd read the file_contexts files
+Resolves: RHEL-236545
+- Allow namespace_init_t execute generic programs in bin directories
+Resolves: RHEL-223973
+- Make insights_client_t accessible from the system cronjob
+Resolves: RHEL-180832
+- Add the anaconda_read_state_install() interface
+Resolves: RHEL-179125
+- Allow insights-client read gconf home files
+Resolves: RHEL-176023
+- Allow rhsmcertd read gconf home files
+Resolves: RHEL-106483
+- Update policy for virsh_ssh_t to help with live migration
+Resolves: RHEL-60450
+
+* Wed Aug 05 2026 Zdenek Pytela <zpytela@redhat.com> - 38.1.84-1
+- Add 2 interfaces helping to handle cloud-what cache files
+Related: RHEL-179125
+- Allow local login and sshd-session signull cockpit-session
+Resolves: RHEL-107874
+- Allow sysadm_t read/write kvm devices
+Resolves: RHEL-107874
+- Allow staff_t and user_t execute udev without a domain transition
+Resolves: RHEL-130797
+- Allow bootupd read all passwd sources
+Resolves: RHEL-219156
+- Allow unconfined_t mounton its lnk_files
+Resolves: RHEL-214141
+- Allow sysadm user run fail2ban-client
+Resolves: RHEL-194366
+- Update files_search_base_file_types()
+Resolves: RHEL-182260
+- Update sysadm policy for encrypted volumes usage
+Resolves: RHEL-180921
+- Allow rhsmcertd read selinux config and default file contexts
+Resolves: RHEL-180764
+- Changes adapting to bind packages with suffixes
+Resolves: RHEL-192093
+
+* Sat Jul 04 2026 Zdenek Pytela <zpytela@redhat.com> - 38.1.83-1
+- Remove systemd_homed_stream_connect() reference for bootupd_t
+Resolves: RHEL-174888
+- Allow postfix_postdrop_t/system_mail_t append to init unix domain stream sockets
+Resolves: RHEL-145322
+- Update bootupd policy for running lsblk
+Resolves: RHEL-174888
+- Allow aide get attributes of all filesystems
+Resolves: RHEL-182787
+- Allow the staff user mount on tmpfs directories
+Resolves: RHEL-183237
+- Allow staff user the dac_override capability in the user namespace
+Resolves: RHEL-183237
+- Allow userdomain get attributes of files on an nsfs filesystem
+Resolves: RHEL-163438
+
+* Mon Jun 22 2026 Veronika Syncakova <vsyncako@redhat.com> - 38.1.82-1
+- Allow systemd-machined to manage nspawn runtime directory
+Resloves: RHEL-108849
+
+* Fri Jun 12 2026 Zdenek Pytela <zpytela@redhat.com> - 38.1.81-1
+- Add the systemd_logind_stream_connect() interface
+Resolves: RHEL-163438
+- Add files_mounton_generic_tmp_dirs() interface
+Resolves: RHEL-163438
+- Allow staff user mounton /var/lib dirs
+Resolves: RHEL-163438
+- Allow staff user read nsfs files
+Resolves: RHEL-163438
+- Allow staff user additional sandboxing permissions
+Resolves: RHEL-163438
+- Allow staff_sudo_t read PID1's process state
+Resolves: RHEL-163438
+- Allow staff_sudo_t read logind sessions files
+Resolves: RHEL-163438
+- Allow staff user delete thump_tmp_t files
+Resolves: RHEL-163438
+- Allow login_userdomain read thumb tmp files
+Resolves: RHEL-163438
+- Allow staff user connect to systemd-logind over a unix stream socket
+Resolves: RHEL-163438
+- Allow staff user mount /proc
+Resolves: RHEL-163438
+- Support confined users usage of bubblewrap
+Resolves: RHEL-163438
+- Add anaconda_ioctl_fifo_files_install() and anaconda_write_fifo_files_install()
+Resolves: RHEL-179125
+- Allow rhsmcertd read anaconda run files
+Resolves: RHEL-179125
+- Allow any domain to inherit fds from rpm-ostree
+Resolves: RHEL-179125
+- Allow install_t domain transition to insights_client_t
+Resolves: RHEL-179125
+- Allow logrotate stop all systemd services
+Resolves: RHEL-169534
+- Allow staff and sysadm execute iotop using sudo
+Resolves: RHEL-172235
+- Allow sysadm_t to connect to iscsid using a unix domain stream socket
+Resolves: RHEL-155605
+
+* Mon May 18 2026 Zdenek Pytela <zpytela@redhat.com> - 38.1.80-1
+- Allow fido services connect to postgres database
+Resolves: RHEL-28814
+- Allow qatlib map kernel modules
+Resolves: RHEL-133799
+
+* Tue May 12 2026 Zdenek Pytela <zpytela@redhat.com> - 38.1.79-1
+- Do not audit iptables attempts to read other process state
+Resolves: RHEL-152287
+- Allow iptables_t read state of some processes
+Resolves: RHEL-152287
+- Allow iptables read firewalld process state
+Resolves: RHEL-152287
+- Allow systemd-machined read virtd process state
+Resolves: RHEL-152287
+- Allow systemd-machined read svirt process state
+Resolves: RHEL-152287
+- Label /dev/HID-SENSOR-.* with hid_sensor_device_t
+Resolves: RHEL-166739
+
+* Tue Apr 21 2026 Zdenek Pytela <zpytela@redhat.com> - 38.1.78-1
+- Allow dbus-broker to use inherited user ttys
+Resolves: RHEL-86925
+- Allow sysadm user connect to lvm over a unix stream socket
+Resolves: RHEL-150996
+
+* Thu Apr 16 2026 Vit Mojzis <vmojzis@redhat.com> - 38.1.77-2
+- Advertise ownership of DPS-related file paths
+Resolves: RHEL-157952
+
+* Fri Apr 10 2026 Veronika Syncakova <vsyncako@redhat.com> - 38.1.77-1
 - Allow pkcsslotd map its private tmpfs files
-Resolves: RHEL-209599
+- Allow pkcsslotd read files in /proc and /sys
+Resolves: RHEL-155929
+- Allow dhcpc_hook_t unix_dgram_socket and module_request
+Resolves: RHEL-147155
+- Allow xdm dbus chat with rhsmcertd
+Resolves: RHEL-157008
+- Allow logwatch to getattr nsfs files
+Resolves: RHEL-160896
+- Allow systemd-tmpfiles to adjust resource limits
+Resolves: RHEL-163080
+- Dontaudit setroubleshootd read root's home files like .rpmmacros
+Resolves: RHEL-147470
+- Allow redis_t to create netlink_rdma_socket
+Resolves: RHEL-161115
+
+* Thu Mar 12 2026 Veronika Syncakova <vsyncako@redhat.com> - 38.1.76-1
+- Allow mdadm to use CAP_BPF during RAID monitoring
+Resolves: RHEL-135764
 
 * Mon Mar 09 2026 Zdenek Pytela <zpytela@redhat.com> - 38.1.75-2
 - Rebuild with the target::exception flag
